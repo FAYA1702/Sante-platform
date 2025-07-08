@@ -19,6 +19,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build images (docker-compose)
+        run: |
+          docker compose build --parallel
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip

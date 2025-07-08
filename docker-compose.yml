@@ -11,6 +11,12 @@ services:
     ports:
       - "27017:27017"
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
   backend:
     build:
       context: ./backend
@@ -21,11 +27,40 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017
       - MONGO_DB_NAME=sante_db
+      - REDIS_URL=redis://redis:6379
     depends_on:
       - mongo
+      - redis
     ports:
       - "8000:8000"
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  ia_service:
+    build:
+      context: ./services/ia_service
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB_NAME=sante_db
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8001:8001"
+    command: ["uvicorn", "main:aapp", "--host", "0.0.0.0", "--port", "8001"]
+
+  notification_service:
+    build:
+      context: ./services/notification_service
+    restart: unless-stopped
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8002:8002"
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
 
   # frontend (optionnel, à ajouter plus tard)
   # frontend:

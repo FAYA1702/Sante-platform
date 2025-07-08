@@ -7,6 +7,7 @@ from fastapi import APIRouter, Query, status, Depends
 
 from backend.dependencies.auth import get_current_user
 from backend.models.donnee import Donnee
+from backend.event_bus import publish as publish_event
 from backend.schemas.donnee import DonneeCreation, DonneeEnDB
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -19,6 +20,14 @@ async def ajouter_donnee(donnee: DonneeCreation):
     """Ajoute une donnée de santé dans MongoDB (Beanie)."""
     doc = Donnee(**donnee.dict())
     await doc.insert()
+    # Publication d'un événement pour déclencher l'analyse IA
+    await publish_event(
+        "nouvelle_donnee",
+        {
+            "donnee_id": str(doc.id),
+            "device_id": doc.device_id,
+        },
+    )
     return DonneeEnDB(id=str(doc.id), **donnee.dict())
 
 

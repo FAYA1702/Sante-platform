@@ -1,0 +1,50 @@
+%% Diagramme ERD - Plateforme de Surveillance de Santé Assistée par IA
+%%{init: {'theme':'dark','themeVariables':{ 'primaryColor':'#4F46E5','edgeLabelBackground':'#FFFFFF','erDiagramBackground':'#1F2937'}}}%%
+erDiagram
+  %% [1] Utilisateur
+  UTILISATEUR {
+    string id PK
+    string nom
+    string email
+    string mot_de_passe
+    string role
+  }
+  %% [2] Données Santé
+  DONNEESANTE {
+    string id PK
+    string utilisateur_id FK
+    float frequence_cardiaque
+    string pression_arterielle
+    float taux_oxygene
+    datetime date
+  }
+  %% [3] Alerte IA
+  ALERTEIA {
+    string id PK
+    string utilisateur_id FK
+    string message
+    string niveau
+    datetime date
+  }
+  %% [4] Recommandation
+  RECOMMANDATION {
+    string id PK
+    string utilisateur_id FK
+    string contenu
+    datetime date
+  }
+  %% [5] Appareil Connecté
+  APPAREILCONNECTE {
+    string id PK
+    string utilisateur_id FK
+    string type
+    string modele
+    datetime date_derniere_connexion
+  }
+
+  %% Relations
+  UTILISATEUR ||--o{ DONNEESANTE       : "posséder"
+  UTILISATEUR ||--o{ ALERTEIA          : "recevoir"
+  UTILISATEUR ||--o{ RECOMMANDATION    : "recevoir"
+  UTILISATEUR ||--o{ APPAREILCONNECTE  : "utiliser"
+  APPAREILCONNECTE ||--o{ DONNEESANTE  : "envoyer"

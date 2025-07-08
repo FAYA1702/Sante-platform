@@ -1,0 +1,42 @@
+%% Schéma Architecture Microservices - Plateforme de Surveillance de Santé Assistée par IA
+%%{init: {'theme':'dark','themeVariables':{ 'primaryColor':'#4F46E5', 'edgeLabelBackground':'#FFFFFF'}}}%%
+flowchart LR
+  subgraph Client [1]
+    UI[1. Web/Mobile UI]
+  end
+
+  subgraph API_Gateway [2]
+    GW[2. API Gateway / BFF]
+  end
+
+  subgraph Microservices [3]
+    Auth[3. Auth Service]
+    User[4. User Profile Service]
+    Health[5. Health Data Service]
+    ML[6. IA/ML Service]
+    Notify[7. Notification Service]
+  end
+
+  subgraph Databases [4]
+    DBUser[(8. MongoDB Profiles)]
+    DBHealth[(9. MongoDB Health Data)]
+    DBML[(10. Blob Storage / Model Registry)]
+    DBNotify[(11. Redis / Queue)]
+  end
+
+  UI --> GW
+  GW --> Auth
+  GW --> User
+  GW --> Health
+  Health --> DBHealth
+  User --> DBUser
+  Auth --> DBUser
+
+  Health --> ML
+  ML --> DBML
+  ML --> Notify
+  Notify --> DBNotify
+  Notify --> GW
+
+  Auth -- JWT --> GW
+  GW -- "OAuth2 / JWT" --> Auth

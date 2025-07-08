@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: sante_db
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  backend:
+    build:
+      context: ./backend
+    container_name: sante_backend
+    restart: unless-stopped
+    env_file:
+      - backend/.env.local  # facultatif : variables locales
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB_NAME=sante_db
+    depends_on:
+      - mongo
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # frontend (optionnel, à ajouter plus tard)
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #   container_name: sante_frontend
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - backend
+  #   ports:
+  #     - "5173:5173"
+
+volumes:
+  mongo_data:
+    driver: local

@@ -1,0 +1,39 @@
+%% Diagramme d'activités - Plateforme de Surveillance de Santé Assistée par IA
+%%{init: {'theme':'dark','themeVariables':{ 'primaryColor':'#4F46E5', 'edgeLabelBackground':'#FFFFFF'}}}%%
+flowchart TD
+  %% Inscription
+  subgraph Inscription [1]
+    A1([Démarrage Inscription]) --> A2[Saisir email / mot de passe]
+    A2 --> A3[Valider données]
+    A3 --> A4{Succès ?}
+    A4 -- Non --> A5[Afficher erreur] --> A2
+    A4 -- Oui --> A6[Créer compte Utilisateur] --> A_end([Fin Inscription])
+  end
+
+  %% Connexion & Profil
+  subgraph Auth_Profil [2]
+    B1([Démarrage Connexion]) --> B2[Entrer identifiants]
+    B2 --> B3{Auth OK ?}
+    B3 -- Non --> B4[Afficher erreur] --> B2
+    B3 -- Oui --> B5[Afficher tableau de bord]
+    B5 --> B6{Action utilisateur}
+    B6 -- Gérer profil --> B7[Modifier profil / mot de passe] --> B5
+    B6 -- Surveiller santé --> C_start
+  end
+
+  %% Surveillance santé
+  subgraph Monitoring [3]
+    C_start([Démarrage Surveillance]) --> C1[Vérifier appareil]
+    C1 --> C2{Appareil connecté ?}
+    C2 -- Non --> C3[Alerte « reconnecter appareil »] --> C1
+    C2 -- Oui --> C4[Collecte données capteur]
+    C4 --> C5[Sauvegarder DonnéeSanté]
+    C5 --> C6[Analyse IA]
+    C6 --> C7{Alerte requise ?}
+    C7 -- Oui --> C8[Créer AlerteIA + notifier]
+    C7 -- Non --> C9[Générer Recommandation]
+    C8 --> C9
+    C9 --> C10[Stocker Recommandation]
+    C10 --> C11[Notifier utilisateur]
+    C11 --> C_end([Fin Surveillance])
+  end

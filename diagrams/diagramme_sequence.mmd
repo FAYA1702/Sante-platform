@@ -1,0 +1,22 @@
+%%{init: {'theme':'dark','themeVariables':{ 'primaryColor':'#4F46E5', 'edgeLabelBackground':'#FFFFFF'}}}%%
+sequenceDiagram
+  participant U as [1. Utilisateur]
+  participant D as [2. AppareilConnecte]
+  participant S as [3. Serveur]
+  participant IA as [4. Service_IA]
+  participant N as [5. Service_Notification]
+  participant DB as [6. BaseDeDonnees]
+
+  U->>D: [1. Démarrer collecte]
+  D->>S: [2. Envoyer données_santé]
+  S->>DB: [3. Sauvegarder DonneeSante]
+  S->>IA: [4. Analyser données]
+  alt [5a. Alerte requise]
+    IA-->>S: Résultat alerte
+    S->>N: [6. Envoyer alerte IA]
+    N-->>U: [7. Notifier utilisateur - Alerte]
+  else [5b. Recommandation]
+    IA-->>S: Résultat recommandation
+    S->>N: [6. Envoyer recommandation]
+    N-->>U: [7. Notifier utilisateur - Reco]
+  end

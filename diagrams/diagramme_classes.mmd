@@ -1,0 +1,50 @@
+%% Diagramme de Classes - Plateforme de Surveillance de Santé Assistée par IA
+%%{init: {'theme':'dark','themeVariables':{ 'primaryColor':'#4F46E5','classTextColor':'#FFFFFF','edgeLabelBackground':'#4F46E5'}}}%%
+classDiagram
+  %% [1]
+  class Utilisateur {
+    - id: String
+    - nom: String
+    - email: String
+    - mot_de_passe: String
+    - role: String
+  }
+  %% [2]
+  class DonneeSante {
+    - id: String
+    - utilisateur_id: String
+    - frequence_cardiaque: Float
+    - pression_arterielle: String
+    - taux_oxygene: Float
+    - date: DateTime
+  }
+  %% [3]
+  class AlerteIA {
+    - id: String
+    - utilisateur_id: String
+    - message: String
+    - niveau: String
+    - date: DateTime
+  }
+  %% [4]
+  class Recommandation {
+    - id: String
+    - utilisateur_id: String
+    - contenu: String
+    - date: DateTime
+  }
+  %% [5]
+  class AppareilConnecte {
+    - id: String
+    - type: String
+    - numero_serie: String
+    - utilisateur_id: String
+  }
+  %% [6]
+  Utilisateur "1" o-- "*" DonneeSante : possede
+  %% [7]
+  Utilisateur "1" o-- "*" AlerteIA : recoit
+  %% [8]
+  Utilisateur "1" o-- "*" Recommandation : recoit
+  %% [9]
+  Utilisateur "1" o-- "*" AppareilConnecte : utilise

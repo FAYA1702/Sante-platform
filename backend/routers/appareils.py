@@ -3,11 +3,13 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from backend.dependencies.auth import get_current_user
+
 from backend.schemas.appareil import AppareilCreation, AppareilEnDB
 from backend.models.device import Device
 
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 COLLECTION = "appareils"
 

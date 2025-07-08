@@ -4,16 +4,24 @@ from backend.models import Device, Donnee, Alerte, Recommandation
 from backend.db import get_client
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import auth, appareils, donnees, alertes, recommandations
+from backend.routers import auth, appareils, donnees, alertes, recommandations, protected
 
-app = FastAPI(title="Sante Platform API", version="0.1.0")
+from contextlib import asynccontextmanager
 
 
-@app.on_event("startup")
-async def on_startup():
-    """Initialise Beanie avec la connexion Mongo."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialisation Beanie lors du démarrage, remplacement de on_event."""
     client = get_client()
-    await init_beanie(database=client['sante_db'], document_models=[Device, Donnee, Alerte, Recommandation])
+    await init_beanie(database=client["sante_db"], document_models=[Device, Donnee, Alerte, Recommandation, Utilisateur])
+    yield
+    # Pas d'opérations de shutdown spécifiques pour l'instant
+
+
+app = FastAPI(title="Sante Platform API", version="0.1.0", lifespan=lifespan)
+
+
+
 
 # CORS (allow React dev server)
 app.add_middleware(
@@ -29,6 +37,7 @@ app.include_router(appareils.router, tags=["appareils"])
 app.include_router(donnees.router, tags=["donnees"])
 app.include_router(alertes.router, tags=["alertes"])
 app.include_router(recommandations.router, tags=["recommandations"])
+app.include_router(protected.router)
 
 
 @app.get("/ping")

@@ -2,13 +2,15 @@
 
 from typing import List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from backend.dependencies.auth import get_current_user
 
 
 from backend.models.alerte import Alerte
 from backend.schemas.alerte import AlerteEnDB
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 

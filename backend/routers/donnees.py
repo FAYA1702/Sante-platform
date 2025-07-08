@@ -3,11 +3,13 @@
 from typing import List
 from datetime import datetime
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, status, Depends
+
+from backend.dependencies.auth import get_current_user
 from backend.models.donnee import Donnee
 from backend.schemas.donnee import DonneeCreation, DonneeEnDB
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 
@@ -22,8 +24,17 @@ async def ajouter_donnee(donnee: DonneeCreation):
 
 @router.get("/data", response_model=List[DonneeEnDB])
 async def lister_donnees(
-    from_: datetime | None = Query(None, alias="from", description="Date de début (ISO)", example="2025-07-01T00:00:00Z"),
-    to: datetime | None = Query(None, description="Date de fin (ISO)", example="2025-07-07T23:59:59Z"),
+    from_: datetime | None = Query(
+        None,
+        alias="from",
+        description="Date de début (ISO)",
+        examples={"2025-07-01T00:00:00Z": {"summary": "Début"}},
+    ),
+    to: datetime | None = Query(
+        None,
+        description="Date de fin (ISO)",
+        examples={"2025-07-07T23:59:59Z": {"summary": "Fin"}},
+    ),
 ):
     """Liste les données de santé filtrées par plage de dates (optionnelle)."""
 

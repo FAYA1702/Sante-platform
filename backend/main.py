@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from beanie import init_beanie
-from backend.models import Device, Donnee, Alerte, Recommandation
+from backend.models import Device, Donnee, Alerte, Recommandation, Utilisateur
 from backend.db import get_client
 from fastapi.middleware.cors import CORSMiddleware
 

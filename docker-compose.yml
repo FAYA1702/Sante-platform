@@ -33,7 +33,7 @@ services:
       - redis
     ports:
       - "8000:8000"
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   ia_service:
     build:
@@ -61,6 +61,17 @@ services:
     ports:
       - "8002:8002"
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://backend:8000
+    ports:
+      - "5173:80"
 
   # frontend (optionnel, à ajouter plus tard)
   # frontend:

@@ -3,8 +3,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from schemas.appareil import AppareilCreation, AppareilEnDB
-from models.device import Device
+from backend.schemas.appareil import AppareilCreation, AppareilEnDB
+from backend.models.device import Device
 
 
 router = APIRouter()

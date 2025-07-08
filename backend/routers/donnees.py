@@ -4,8 +4,8 @@ from typing import List
 from datetime import datetime
 
 from fastapi import APIRouter, Query, status
-from models.donnee import Donnee
-from schemas.donnee import DonneeCreation, DonneeEnDB
+from backend.models.donnee import Donnee
+from backend.schemas.donnee import DonneeCreation, DonneeEnDB
 
 router = APIRouter()
 

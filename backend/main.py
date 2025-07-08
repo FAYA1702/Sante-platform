@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from beanie import init_beanie
-from models import Device, Donnee, Alerte, Recommandation
-from db import get_client
+from backend.models import Device, Donnee, Alerte, Recommandation
+from backend.db import get_client
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import auth, appareils, donnees, alertes, recommandations
+from backend.routers import auth, appareils, donnees, alertes, recommandations
 
 app = FastAPI(title="Sante Platform API", version="0.1.0")
 

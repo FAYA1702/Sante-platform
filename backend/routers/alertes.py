@@ -5,8 +5,8 @@ from typing import List
 from fastapi import APIRouter
 
 
-from models.alerte import Alerte
-from schemas.alerte import AlerteEnDB
+from backend.models.alerte import Alerte
+from backend.schemas.alerte import AlerteEnDB
 
 router = APIRouter()
 

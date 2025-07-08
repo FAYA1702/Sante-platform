@@ -5,8 +5,8 @@ from typing import List
 from fastapi import APIRouter
 
 
-from models.recommandation import Recommandation
-from schemas.recommandation import RecommandationEnDB
+from backend.models.recommandation import Recommandation
+from backend.schemas.recommandation import RecommandationEnDB
 
 router = APIRouter()
 

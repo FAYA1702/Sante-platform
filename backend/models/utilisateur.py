@@ -13,6 +13,7 @@ class Role(str, Enum):
     patient = "patient"
     medecin = "medecin"
     admin = "admin"
+    technicien = "technicien"
 
 
 class Utilisateur(Document):

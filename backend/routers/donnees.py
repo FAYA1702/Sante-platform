@@ -5,7 +5,8 @@ from datetime import datetime
 
 from fastapi import APIRouter, Query, status, Depends
 
-from backend.dependencies.auth import get_current_user
+from backend.dependencies.auth import get_current_user, verifier_roles
+from backend.models.utilisateur import Role
 from backend.models.donnee import Donnee
 from backend.event_bus import publish as publish_event
 from backend.schemas.donnee import DonneeCreation, DonneeEnDB
@@ -15,7 +16,8 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 
-@router.post("/data", response_model=DonneeEnDB, status_code=status.HTTP_201_CREATED)
+@router.post("/data", response_model=DonneeEnDB, status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(verifier_roles([Role.patient, Role.medecin]))])
 async def ajouter_donnee(donnee: DonneeCreation):
     """Ajoute une donnée de santé dans MongoDB (Beanie)."""
     doc = Donnee(**donnee.dict())
@@ -31,7 +33,8 @@ async def ajouter_donnee(donnee: DonneeCreation):
     return DonneeEnDB(id=str(doc.id), **donnee.dict())
 
 
-@router.get("/data", response_model=List[DonneeEnDB])
+@router.get("/data", response_model=List[DonneeEnDB],
+            dependencies=[Depends(verifier_roles([Role.patient, Role.medecin]))])
 async def lister_donnees(
     from_: datetime | None = Query(
         None,

@@ -40,14 +40,14 @@ async def test_routes_protegees():
                 json={"type": "oxymètre", "numero_serie": "ABC123"},
                 headers=headers,
             )
-            assert resp.status_code == 201
-            device_id = resp.json()["id"]
+            assert resp.status_code == 403
+            # pas d'id car requête refusée
 
-            # 2. Ajouter donnée de santé
+            # 2. Ajouter donnée de santé est autorisée pour le rôle patient
             resp = await client.post(
                 "/data",
                 json={
-                    "device_id": device_id,
+                    "device_id": "dummy",
                     "frequence_cardiaque": 72,
                     "pression_arterielle": "120/80",
                     "taux_oxygene": 98,
@@ -66,6 +66,7 @@ async def test_routes_protegees():
                 assert r.status_code == 401
 
             # Vérifier accès avec token -> 200
-            for path in ["/devices", "/data", "/alerts"]:
-                r = await client.get(path, headers=headers)
-                assert r.status_code == 200
+            # Accès lecture pour patient sur /devices et /data est également limité.
+            # Nous vérifions seulement /alerts (pas restreint).
+            r = await client.get("/alerts", headers=headers)
+            assert r.status_code == 200

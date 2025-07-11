@@ -15,6 +15,15 @@ class UtilisateurLogin(BaseModel):
     mot_de_passe: str = Field(..., description="Mot de passe")
 
 
+class UtilisateurPublic(BaseModel):
+    """Informations publiques d'un utilisateur retournées par l'API."""
+
+    id: str
+    email: EmailStr
+    username: str
+    role: str
+
+
 class Token(BaseModel):
     """Schéma du jeton JWT retourné après la connexion."""
 

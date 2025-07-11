@@ -5,22 +5,29 @@ Toutes les fonctions sont rédigées en français.
 from typing import Annotated, List, Optional
 
 from fastapi import Depends, HTTPException, status, Header
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
 
 from backend.models.utilisateur import Utilisateur, Role
 from backend.utils.auth import verifier_jwt
 
+# Schéma de sécurité HTTP Bearer (JWT)
+bearer_scheme = HTTPBearer(auto_error=False)
 
-async def get_current_user(authorization: Annotated[Optional[str], Header(alias="Authorization")] = None) -> Utilisateur:
+
+async def get_current_user(
+
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)] = None,
+) -> Utilisateur:
     """Retourne l'utilisateur actuellement authentifié via le JWT dans l'en-tête Authorization.
 
     Le JWT doit être envoyé sous la forme « Bearer <token> ».
     """
 
-    if authorization is None or not authorization.startswith("Bearer "):
+    if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Jeton manquant")
 
-    token = authorization.split()[1]
+    token = credentials.credentials
     payload = verifier_jwt(token)
     if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Jeton invalide ou expiré")

@@ -12,10 +12,14 @@ from dotenv import load_dotenv
 
 load_dotenv(".env")
 
+# Clé secrète utilisée pour signer les JWT (à remplacer en production par une valeur forte et stockée en variable d’environnement)
 SECRET_KEY = os.getenv("JWT_SECRET", "secret-demo")
+# Algorithme de signature : HS256 par défaut (HMAC + SHA-256)
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+# Durée de vie par défaut d’un token (60 minutes)
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
 
+# Contexte Passlib configuré pour bcrypt (salage et facteur de travail automatique)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 

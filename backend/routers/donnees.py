@@ -33,6 +33,11 @@ async def ajouter_donnee(donnee: DonneeCreation):
     return DonneeEnDB(id=str(doc.id), **donnee.dict())
 
 
+#
+# Accès strictement réservé aux patients et médecins (conforme RGPD, secret médical)
+# Pour la démo, tu peux décommenter la ligne suivante pour autoriser l’admin :
+# dependencies=[Depends(verifier_roles([Role.patient, Role.medecin, Role.admin]))]
+# ⚠️ Ne jamais activer cette option en production sans justification légale !
 @router.get("/data", response_model=List[DonneeEnDB],
             dependencies=[Depends(verifier_roles([Role.patient, Role.medecin]))])
 async def lister_donnees(

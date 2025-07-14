@@ -4,7 +4,7 @@ from backend.models import Device, Donnee, Alerte, Recommandation, Utilisateur
 from backend.db import get_client
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import auth, appareils, donnees, alertes, recommandations, protected, users
+from backend.routers import auth, appareils, donnees, alertes, recommandations, protected, users, stats
 
 from contextlib import asynccontextmanager
 
@@ -38,6 +38,7 @@ app.include_router(appareils.router, tags=["appareils"])
 app.include_router(donnees.router, tags=["donnees"])
 app.include_router(alertes.router, tags=["alertes"])
 app.include_router(recommandations.router, tags=["recommandations"])
+app.include_router(stats.router)
 app.include_router(users.router)
 app.include_router(protected.router)
 

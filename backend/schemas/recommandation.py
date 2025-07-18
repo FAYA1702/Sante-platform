@@ -5,8 +5,9 @@ from pydantic import BaseModel, Field
 
 
 class RecommandationBase(BaseModel):
-    contenu: str = Field(..., description="Contenu de la recommandation")
-    date: datetime = Field(..., description="Date de création")
+    titre: str = Field(..., description="Titre de la recommandation")
+    description: str = Field(..., description="Description détaillée de la recommandation")
+    date: datetime = Field(default_factory=datetime.utcnow, description="Date de création")
 
 
 class RecommandationCreation(RecommandationBase):
@@ -14,6 +15,7 @@ class RecommandationCreation(RecommandationBase):
 
 
 class RecommandationEnDB(RecommandationBase):
+    user_id: str = Field(..., description="ID du patient concerné")
     id: str = Field(..., description="Identifiant unique de la recommandation (UUID)")
 
     model_config = {

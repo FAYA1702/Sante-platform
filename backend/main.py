@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from beanie import init_beanie
-from backend.models import Device, Donnee, Alerte, Recommandation, Utilisateur
+from backend.models import Device, Donnee, Alerte, Utilisateur
+from backend.models.recommendation import Recommendation
 from backend.db import get_client
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,7 +15,7 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialisation Beanie lors du démarrage, remplacement de on_event."""
     client = get_client()
-    await init_beanie(database=client["sante_db"], document_models=[Device, Donnee, Alerte, Recommandation, Utilisateur])
+    await init_beanie(database=client["sante_db"], document_models=[Device, Donnee, Alerte, Recommendation, Utilisateur])
     yield
     # Pas d'opérations de shutdown spécifiques pour l'instant
 
@@ -25,10 +26,17 @@ app = FastAPI(title="Sante Platform API", version="0.1.0", lifespan=lifespan)
 
 
 # CORS (allow React dev server)
+origins = [
+    "http://localhost:5173",  # Frontend Vite dev
+    "http://localhost:3000",  # Réservé pour d’éventuels autres environnements React
+]
+
+# ⚠️ Mode démo : on autorise toutes les origines pour simplifier le debug CORS.
+# En production, restreindre à la liste des domaines frontend.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -77,3 +85,9 @@ app.openapi = custom_openapi
 @app.get("/ping")
 async def ping():
     return {"status": "ok"}
+
+
+@app.get("/test-cors")
+async def test_cors():
+    """Endpoint de test pour vérifier que CORS fonctionne (sans auth)."""
+    return {"message": "CORS fonctionne !", "timestamp": "2025-07-18"}

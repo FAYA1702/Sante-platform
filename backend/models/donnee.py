@@ -11,6 +11,7 @@ class Donnee(Document):
     """Document représentant une mesure de santé provenant d'un appareil."""
 
     device_id: str = Field(..., description="Identifiant de l'appareil (UUID)")
+    user_id: str = Field(..., description="ID du patient propriétaire de la donnée")  # RGPD : chaque donnée est liée à un patient
     frequence_cardiaque: Optional[float] = Field(None, description="Fréquence cardiaque en bpm")
     pression_arterielle: Optional[str] = Field(None, description="Pression artérielle ex: '120/80'")
     taux_oxygene: Optional[float] = Field(None, description="Taux d'oxygène SpO2 en %")

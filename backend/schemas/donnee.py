@@ -15,10 +15,12 @@ class DonneeBase(BaseModel):
 
 class DonneeCreation(DonneeBase):
     """Schéma utilisé lors de la création d'une donnée de santé."""
+    user_id: Optional[str] = Field(None, description="ID du patient propriétaire (rempli côté backend)")
 
 
 class DonneeEnDB(DonneeBase):
     id: str = Field(..., description="Identifiant unique de la donnée (UUID)")
+    user_id: str = Field(..., description="ID du patient propriétaire de la donnée")
 
     model_config = {
         "from_attributes": True

@@ -23,8 +23,11 @@ async def ajouter_donnee(donnee: DonneeCreation, current_user=Depends(get_curren
     Ajoute une donnée de santé dans MongoDB (Beanie).
     Le champ user_id est automatiquement renseigné avec l’ID du patient connecté (RGPD).
     """
-    doc = Donnee(**donnee.dict(), user_id=str(current_user.id))
+    donnee_data = donnee.model_dump(exclude={"user_id"})
+    # Insertion en BDD avec l’ID du patient courant
+    doc = Donnee(**donnee_data, user_id=str(current_user.id))
     await doc.insert()
+
     # Publication d'un événement pour déclencher l'analyse IA
     await publish_event(
         "nouvelle_donnee",
@@ -33,7 +36,9 @@ async def ajouter_donnee(donnee: DonneeCreation, current_user=Depends(get_curren
             "device_id": doc.device_id,
         },
     )
-    return DonneeEnDB(id=str(doc.id), user_id=str(current_user.id), **donnee.dict())
+
+    # Retourne la donnée insérée sans passer deux fois user_id
+    return DonneeEnDB(id=str(doc.id), user_id=str(current_user.id), **donnee_data)
 
 
 #

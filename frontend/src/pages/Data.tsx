@@ -45,6 +45,7 @@ export default function Data() {
   );
 
   const [donnees, setDonnees] = useState<any[]>([]);
+  const [devices, setDevices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +58,22 @@ export default function Data() {
           .then(res => setDonnees(res.data))
           .catch(e => setError('Erreur lors du chargement des données santé.'))
           .finally(() => setLoading(false));
+      });
+    }
+  }, [role]);
+
+  // Charge les appareils du patient (liste déroulante)
+  useEffect(() => {
+    if (role === 'patient') {
+      import('../api').then(({ default: api }) => {
+        api.get('/my/devices')
+          .then(res => {
+            setDevices(res.data);
+            if (res.data.length === 1) {
+              setForm(prev => ({ ...prev, device_id: res.data[0].id }));
+            }
+          })
+          .catch(() => setError('Erreur lors du chargement des appareils.'));
       });
     }
   }, [role]);
@@ -113,8 +130,21 @@ export default function Data() {
       {(role === 'patient' || role === 'medecin' || role === 'admin') && (
         <form onSubmit={handleSubmit} className="mb-6 bg-gray-50 border rounded p-4 flex flex-wrap gap-4 items-end">
           <div>
-            <label className="block text-xs font-semibold mb-1">Appareil (ID)</label>
-            <input name="device_id" type="text" required value={form.device_id} onChange={handleChange} className="border px-2 py-1 rounded w-32" />
+            <label className="block text-xs font-semibold mb-1">Appareil</label>
+            {role === 'patient' ? (
+              devices.length > 0 ? (
+                <select name="device_id" required value={form.device_id} onChange={e => setForm({ ...form, device_id: e.target.value })} className="border px-2 py-1 rounded w-40">
+                  <option value="" disabled>Sélectionner</option>
+                  {devices.map((d:any) => (
+                    <option key={d.id} value={d.id}>{d.type} · {d.numero_serie}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-red-600 text-sm">Aucun appareil enregistré</span>
+              )
+            ) : (
+              <input name="device_id" type="text" required value={form.device_id} onChange={handleChange} className="border px-2 py-1 rounded w-32" />
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold mb-1">Fréquence cardiaque (bpm)</label>

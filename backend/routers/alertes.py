@@ -10,7 +10,7 @@ from backend.dependencies.auth import get_current_user
 from backend.models.alerte import Alerte
 from backend.schemas.alerte import AlerteEnDB
 
-router = APIRouter(dependencies=[Depends(get_current_user)])
+router = APIRouter()
 
 
 

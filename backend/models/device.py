@@ -9,6 +9,7 @@ class Device(Document):
 
     type: str = Field(..., description="Type d'appareil, ex: 'oxymètre'")
     numero_serie: str = Field(..., description="Numéro de série unique")
+    user_id: str = Field(None, description="ID du patient propriétaire de l'appareil (RGPD)")
 
     class Settings:
         name = "appareils"  # Nom de la collection MongoDB

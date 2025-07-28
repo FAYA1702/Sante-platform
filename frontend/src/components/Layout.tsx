@@ -1,7 +1,8 @@
 // Layout.tsx — Tailwind
 import { Outlet, useNavigate, Link } from 'react-router-dom';
+import { PropsWithChildren } from 'react';
 
-export default function Layout() {
+export default function Layout({ children }: PropsWithChildren) {
   const navigate = useNavigate();
   // Récupération du rôle utilisateur depuis le JWT (pour menus conditionnels)
   let role = '';
@@ -79,7 +80,7 @@ export default function Layout() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        <Outlet />
+        {children ?? <Outlet />}
       </main>
     </>
   );

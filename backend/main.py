@@ -26,17 +26,28 @@ app = FastAPI(title="Sante Platform API", version="0.1.0", lifespan=lifespan)
 
 
 # CORS (allow React dev server)
+# Liste blanche des origines autorisées (frontend)
 origins = [
-    "http://localhost:5173",  # Frontend Vite dev
-    "http://localhost:3000",  # Réservé pour d’éventuels autres environnements React
+    "http://localhost:5173",  # Frontend Vite (développement)
+    "http://localhost:5174",  # Frontend Vite (port alternatif)
+    "http://localhost:3000",  # Autre port React éventuel
 ]
 
-# ⚠️ Mode démo : on autorise toutes les origines pour simplifier le debug CORS.
-# En production, restreindre à la liste des domaines frontend.
+# -----------------------------------------------------------------------------
+# Configuration CORS
+# -----------------------------------------------------------------------------
+# Selon la spécification CORS, l’en-tête Authorization est considéré comme un
+# « credential ».  Pour permettre l’envoi du JWT depuis le frontend, il faut :
+#   1. activer allow_credentials=True (ce qui ajoute Access-Control-Allow-Credentials)
+#   2. ne pas utiliser l’astérisque * pour allow_origins
+#
+# En mode développement, on autorise toutes les origines localhost quel que soit le port.
+# En production, restreindre la liste aux domaines frontaux officiels.
+# Configuration CORS simplifiée pour le développement
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=["http://localhost:5174"],  # Frontend Vite actuel
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

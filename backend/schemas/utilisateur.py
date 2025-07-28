@@ -25,6 +25,24 @@ class UtilisateurPublic(BaseModel):
     role: str
 
 
+class UtilisateurAdminCreate(BaseModel):
+    """Schéma utilisé par un administrateur pour créer un utilisateur.
+    Contrairement à l'inscription publique, tous les rôles sont autorisés."""
+
+    email: EmailStr
+    username: str = Field(..., min_length=3, pattern=r'^[a-zA-Z0-9_.-]+$')
+    mot_de_passe: str = Field(..., min_length=6)
+    role: str = Field(..., description="Rôle attribué à la création")
+
+
+class UtilisateurUpdate(BaseModel):
+    """Schéma de mise à jour partielle d'un utilisateur (admin)."""
+
+    email: EmailStr | None = None
+    username: str | None = Field(None, min_length=3, pattern=r'^[a-zA-Z0-9_.-]+$')
+    role: str | None = None
+
+
 class Token(BaseModel):
     """Schéma du jeton JWT retourné après la connexion."""
 

@@ -152,40 +152,9 @@ export default function Users() {
       {error && <p className="text-red-600 mb-4">{error}</p>}
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white shadow rounded">
-          <thead className="sticky top-0 bg-white shadow-sm">
-            <tr>
-              <th className="text-left p-2">Email</th>
-              <th className="text-left p-2">Username</th>
-              <th className="text-left p-2">Rôle</th>
-              <th className="text-right p-2">Actions</th>
-            </tr>
-          </thead>
+          <thead className="sticky top-0 bg-white shadow-sm"><tr><th className="text-left p-2">Email</th><th className="text-left p-2">Username</th><th className="text-left p-2">Rôle</th><th className="text-right p-2">Actions</th></tr></thead>
           <tbody>
-            {users.map((u, idx) => (
-              <tr key={u.id} className={idx % 2 ? 'odd:bg-slate-50' : ''}>
-                <td className="p-2">{u.email}</td>
-                <td className="p-2">{u.username}</td>
-                <td className="p-2">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${roleColors[u.role]}`}>{u.role}</span>
-                </td>
-                <td className="p-2 text-right space-x-2">
-                  <button
-                    onClick={() => handleEdit(u)}
-                    title="Modifier"
-                    className="px-2 py-1 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform"
-                  >
-                    ✏️ <span className="sr-only">Modifier</span>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(u.id)}
-                    title="Supprimer"
-                    className="px-2 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform"
-                  >
-                    🗑️ <span className="sr-only">Supprimer</span>
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {users.map((u, idx) => (<tr key={u.id} className={idx % 2 ? 'odd:bg-slate-50' : ''}><td className="p-2">{u.email}</td><td className="p-2">{u.username}</td><td className="p-2"><span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${roleColors[u.role]}`}>{u.role}</span></td><td className="p-2 text-right space-x-2"><button onClick={() => handleEdit(u)} title="Modifier" className="px-2 py-1 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform">✏️ <span className="sr-only">Modifier</span></button><button onClick={() => handleDelete(u.id)} title="Supprimer" className="px-2 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform">🗑️ <span className="sr-only">Supprimer</span></button></td></tr>))}
           </tbody>
         </table>
       </div>

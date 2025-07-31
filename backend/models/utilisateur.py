@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Optional
 
 from beanie import Document, Indexed
+from datetime import datetime
 from pydantic import EmailStr, Field
 
 
@@ -23,6 +24,9 @@ class Utilisateur(Document):
     username: Indexed(str, unique=True)  # type: ignore
     mot_de_passe_hache: str = Field(..., min_length=60)
     role: Role = Role.patient
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = Field(default=True)
 
     class Settings:
         name = "utilisateurs"

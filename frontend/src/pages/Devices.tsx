@@ -238,12 +238,13 @@ export default function Devices() {
                   <td className="py-2 px-4 border">{appareil.type}</td>
                   <td className="py-2 px-4 border">{appareil.numero_serie}</td>
                   <td className="py-2 px-4 border">
-                    {appareil.user_id ? 
+                    {appareil.patient_username ? (
                       <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                        Patient #{appareil.user_id.substring(0, 4)}
-                      </span> : 
+                        {appareil.patient_username}
+                      </span>
+                    ) : (
                       <span className="text-gray-400 italic">Non assigné</span>
-                    }
+                    )}
                   </td>
                 </tr>
               ))}

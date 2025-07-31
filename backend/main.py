@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from beanie import init_beanie
 from backend.models import Device, Donnee, Alerte, Utilisateur
-from backend.models.recommendation import Recommendation
-from backend.db import get_client
+from backend.models.recommandation import Recommandation
+from backend.db import get_client, MONGO_DB_NAME
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import auth, appareils, donnees, alertes, recommandations, protected, users, stats
+from backend.routers import auth, appareils, donnees, alertes, recommandations, protected, users, stats, patients
 
 from contextlib import asynccontextmanager
 
@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialisation Beanie lors du démarrage, remplacement de on_event."""
     client = get_client()
-    await init_beanie(database=client["sante_db"], document_models=[Device, Donnee, Alerte, Recommendation, Utilisateur])
+    await init_beanie(database=client[MONGO_DB_NAME], document_models=[Device, Donnee, Alerte, Recommandation, Utilisateur])
     yield
     # Pas d'opérations de shutdown spécifiques pour l'instant
 
@@ -56,9 +56,10 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(appareils.router, tags=["appareils"])
 app.include_router(donnees.router, tags=["donnees"])
 app.include_router(alertes.router, tags=["alertes"])
-app.include_router(recommandations.router, tags=["recommandations"])
+app.include_router(recommandations.router)
 app.include_router(stats.router)
 app.include_router(users.router)
+app.include_router(patients.router)
 app.include_router(protected.router)
 
 

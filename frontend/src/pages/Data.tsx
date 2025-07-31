@@ -2,6 +2,24 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 
+// Utilitaire export CSV
+function exportCsv(filename: string, rows: string[][]) {
+  const csvContent = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Seuils cohérents avec le micro-service IA
+const FC_MAX = Number(import.meta.env.VITE_FC_MAX ?? 100);
+const SPO2_MIN = Number(import.meta.env.VITE_SPO2_MIN ?? 92);
+
 /**
  * Page Données santé (protégée RBAC frontend)
  * Seuls les patients et médecins peuvent accéder à cette page.
@@ -46,6 +64,7 @@ export default function Data() {
 
   const [donnees, setDonnees] = useState<any[]>([]);
   const [devices, setDevices] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +97,19 @@ export default function Data() {
     }
   }, [role]);
 
+  // Charge la liste des patients pour le filtre médecin
+  useEffect(() => {
+    if (role === 'medecin') {
+      import('../api').then(({ default: api }) => {
+        api.get('/users/patients')
+          .then(res => setPatients(res.data))
+          .catch(() => console.error('Erreur lors du chargement des patients'));
+      });
+    } else {
+      setPatients([]);
+    }
+  }, [role]);
+
   // --- Formulaire d’ajout de donnée santé ---
   const [form, setForm] = useState({
     device_id: '',
@@ -88,6 +120,11 @@ export default function Data() {
   });
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState<string|null>(null);
+
+  // Filtres et pagination
+  const [filters, setFilters] = useState({ patient: '', start: '', end: '' });
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
   const [formError, setFormError] = useState<string|null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,10 +160,78 @@ export default function Data() {
     });
   };
 
+  // Associe le nom patient s’il manque, à partir de la liste patients
+  const usernameMap = Object.fromEntries(patients.map((p:any)=>[p.id, p.username]));
+  const donneesEnrichies = donnees.map((d:any)=> ({...d, patient_nom: d.patient_nom ?? usernameMap[d.user_id]}));
+
+  // Applique filtres date/patient
+  const filteredDonnees = donneesEnrichies.filter((d:any) => {
+    const okPatient = filters.patient ? ((d.patient_nom ?? '').toLowerCase().includes(filters.patient.toLowerCase())) : true;
+    const okStart = filters.start ? new Date(d.date) >= new Date(filters.start) : true;
+    const okEnd = filters.end ? new Date(d.date) <= new Date(filters.end) : true;
+    return okPatient && okStart && okEnd;
+  });
+  const totalPages = Math.ceil(filteredDonnees.length / itemsPerPage) || 1;
+  const paginated = filteredDonnees.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  const handleExportCsv = () => {
+    const rows = [
+      ['Date', 'Appareil', 'Fréquence cardiaque', 'Pression artérielle', 'Taux O₂', 'Provenance'],
+      ...filteredDonnees.map((d:any) => [
+        new Date(d.date).toLocaleString(),
+        d.device_id,
+        String(d.frequence_cardiaque ?? ''),
+        d.pression_arterielle ?? '',
+        String(d.taux_oxygene ?? ''),
+        d.source ?? '',
+      ]),
+    ];
+    exportCsv('donnees_sante.csv', rows);
+  };
+
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Données santé</h1>
-      {role === 'admin' && <p className="text-xs text-orange-600 mb-2">(Accès admin activé pour la démo, à désactiver en production)</p>}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Données santé</h1>
+        {filteredDonnees.length > 0 && (
+          <button onClick={handleExportCsv} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Exporter CSV</button>
+        )}
+      </div>
+      {/* Mention RGPD / finalité médicale */}
+<p className="text-xs text-slate-500 mb-2">
+  Ces données de santé sont traitées uniquement à des fins de suivi médical. Conformément au RGPD, elles ne
+  seront jamais utilisées à d’autres fins sans consentement explicite.
+</p>
+{role === 'admin' && (
+  <p className="text-xs text-orange-600 mb-2">
+    (Accès admin activé pour la démo, à désactiver en production)
+  </p>
+)}
+      {role === 'medecin' && (
+        <div className="mb-4 flex flex-wrap gap-4 items-end bg-gray-50 border rounded p-4">
+          <div>
+            <label className="block text-xs font-semibold mb-1">Patient</label>
+            {patients.length > 0 ? (
+              <select value={filters.patient} onChange={e=>{setFilters({...filters, patient:e.target.value}); setPage(1);}} className="border px-2 py-1 rounded w-56">
+                <option value="">Tous</option>
+                {patients.map((p:any) => (
+                  <option key={p.id} value={p.username}>{p.username}</option>
+                ))}
+              </select>
+            ) : (
+              <input type="text" value={filters.patient} onChange={e=>{setFilters({...filters, patient:e.target.value}); setPage(1);}} className="border px-2 py-1 rounded w-56" placeholder="Nom patient" />
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1">Du</label>
+            <input type="date" value={filters.start} onChange={e=>{setFilters({...filters, start:e.target.value}); setPage(1);}} className="border px-2 py-1 rounded" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1">Au</label>
+            <input type="date" value={filters.end} onChange={e=>{setFilters({...filters, end:e.target.value}); setPage(1);}} className="border px-2 py-1 rounded" />
+          </div>
+        </div>
+      )}
       {(role === 'patient' || role === 'medecin' || role === 'admin') && (
         <form onSubmit={handleSubmit} className="mb-6 bg-gray-50 border rounded p-4 flex flex-wrap gap-4 items-end">
           <div>
@@ -181,20 +286,30 @@ export default function Data() {
                 <th className="px-4 py-2">Fréquence cardiaque</th>
                 <th className="px-4 py-2">Pression artérielle</th>
                 <th className="px-4 py-2">Taux O₂</th>
+                <th className="px-4 py-2">Provenance</th>
               </tr>
             </thead>
             <tbody>
-              {donnees.map((d, i) => (
+              {paginated.map((d, i) => (
                 <tr key={d.id || i} className="border-b">
                   <td className="px-4 py-2">{new Date(d.date).toLocaleString()}</td>
-                  <td className="px-4 py-2">{d.device_id}</td>
-                  <td className="px-4 py-2">{d.frequence_cardiaque ?? '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{d.device_nom || d.device_id}</td>
+                  <td className={d.frequence_cardiaque > FC_MAX ? 'text-red-600 font-semibold' : ''}>{d.frequence_cardiaque}</td>
                   <td className="px-4 py-2">{d.pression_arterielle ?? '-'}</td>
-                  <td className="px-4 py-2">{d.taux_oxygene ?? '-'}</td>
+                  <td className={d.taux_oxygene < SPO2_MIN ? 'text-red-600 font-semibold' : ''}>{d.taux_oxygene}</td>
+                  <td className="px-4 py-2">{d.source ?? '-'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-2 flex gap-2 items-center">
+              <button disabled={page===1} onClick={()=>setPage(p=>p-1)} className="px-2 py-1 border rounded disabled:opacity-40">Préc.</button>
+              <span className="text-sm">Page {page}/{totalPages}</span>
+              <button disabled={page===totalPages} onClick={()=>setPage(p=>p+1)} className="px-2 py-1 border rounded disabled:opacity-40">Suiv.</button>
+            </div>
+          )}
         </div>
       )}
     </div>

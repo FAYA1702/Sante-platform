@@ -15,6 +15,9 @@ class Donnee(Document):
     frequence_cardiaque: Optional[float] = Field(None, description="Fréquence cardiaque en bpm")
     pression_arterielle: Optional[str] = Field(None, description="Pression artérielle ex: '120/80'")
     taux_oxygene: Optional[float] = Field(None, description="Taux d'oxygène SpO2 en %")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = Field(default=True)
     date: datetime = Field(default_factory=datetime.utcnow, description="Horodatage de la mesure")
 
     class Settings:

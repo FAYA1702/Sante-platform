@@ -9,6 +9,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
 
 from backend.models.utilisateur import Utilisateur, Role
+from backend.settings import DEMO_MODE
 from backend.utils.auth import verifier_jwt
 
 # Schéma de sécurité HTTP Bearer (JWT)
@@ -41,6 +42,18 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
 
     return user
+
+
+def roles_sante() -> List[Role]:
+    """Retourne la liste des rôles ayant accès aux données santé.
+
+    - Toujours Patient et Médecin.
+    - Admin uniquement si DEMO_MODE est actif.
+    """
+    base = [Role.patient, Role.medecin]
+    if DEMO_MODE:
+        base.append(Role.admin)
+    return base
 
 
 def verifier_roles(roles_autorises: List[Role]):

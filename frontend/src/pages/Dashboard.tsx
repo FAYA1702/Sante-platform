@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import StatsCard from '../components/StatsCard';
 import RecommendationCard from '../components/RecommendationCard';
@@ -10,6 +11,7 @@ interface Alerte {
   message: string;
   niveau: string;
   date: string;
+  patient_id?: string;
 }
 
 interface Recommendation {
@@ -43,6 +45,7 @@ interface Stats {
  * Tous les appels sont effectués une seule fois à l’affichage initial grâce au `useEffect`.
  */
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [alertes, setAlertes] = useState<Alerte[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState('');
@@ -64,6 +67,21 @@ export default function Dashboard() {
   const roleLabel = role === 'admin' ? 'Administrateur' : role === 'medecin' ? 'Docteur' : role === 'technicien' ? 'Technicien' : 'Patient';
 
   useEffect(() => {
+    // --- Abonnement temps réel aux alertes ---
+    const es = new EventSource(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/alerts/stream`, { withCredentials: false });
+    es.onmessage = (e) => {
+      try {
+        const alerte = JSON.parse(e.data);
+        setAlertes((prev) => [alerte, ...prev]);
+        // notifie le layout pour le badge
+        window.dispatchEvent(new CustomEvent('new-alert', { detail: alerte }));
+      } catch {}
+    };
+    es.onerror = () => {
+      console.warn('SSE alerts déconnecté');
+      es.close();
+    };
+
     (async () => {
       try {
         // --- Statistiques globales (cartes du haut) ---
@@ -165,7 +183,7 @@ export default function Dashboard() {
         </div>
       )}
       <section className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Alertes récentes</h2>
+        <h2 id="alertes-section" className="text-xl font-semibold mb-4">Alertes récentes</h2>
         {error && <p className="text-red-500 mb-2">{error}</p>}
         {alertes.length === 0 ? (
           <p>Aucune alerte.</p>
@@ -221,7 +239,7 @@ export default function Dashboard() {
                           {a.niveau.charAt(0).toUpperCase() + a.niveau.slice(1)}
                         </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{a.message}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 hover:text-blue-600 cursor-pointer" onClick={() => navigate(`/patients/${a.patient_id || a.id}`)}>{a.message}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{new Date(a.date).toLocaleString()}</td>
                   </tr>
                 ))}

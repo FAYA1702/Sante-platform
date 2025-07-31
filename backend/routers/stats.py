@@ -6,7 +6,7 @@ from backend.dependencies.auth import get_current_user, verifier_roles
 from backend.models.device import Device
 from backend.models.donnee import Donnee
 from backend.models.alerte import Alerte
-from backend.models.recommendation import Recommendation
+from backend.models.recommandation import Recommandation
 from backend.models.utilisateur import Utilisateur, Role
 from backend.schemas.stats import StatsReponse
 
@@ -21,6 +21,6 @@ async def obtenir_stats() -> StatsReponse:
         total_appareils=await Device.count(),
         total_donnees=await Donnee.count(),
         total_alertes=await Alerte.count(),
-        total_recommandations=await Recommendation.count(),
+        total_recommandations=await Recommandation.count(),
         total_utilisateurs=await Utilisateur.count(),
     )

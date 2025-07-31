@@ -23,11 +23,12 @@ services:
     container_name: sante_backend
     restart: unless-stopped
     env_file:
-      - backend/.env.local  # facultatif : variables locales
+      - backend/.env  # variables d'environnement back
     environment:
       - MONGO_URI=mongodb://mongo:27017
       - MONGO_DB_NAME=sante_db
       - REDIS_URL=redis://redis:6379
+      - DEMO_MODE=true  # autorise l'admin à consulter les données santé en mode démo
     depends_on:
       - mongo
       - redis
@@ -46,6 +47,7 @@ services:
       - MONGO_URI=mongodb://mongo:27017
       - MONGO_DB_NAME=sante_db
       - REDIS_URL=redis://redis:6379
+      - DEMO_MODE=true  # autorise l'admin à consulter les données santé en mode démo
     ports:
       - "8001:8001"
     command: ["uvicorn", "main:aapp", "--host", "0.0.0.0", "--port", "8001"]
@@ -58,6 +60,7 @@ services:
       - redis
     environment:
       - REDIS_URL=redis://redis:6379
+      - DEMO_MODE=true  # autorise l'admin à consulter les données santé en mode démo
     ports:
       - "8002:8002"
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
@@ -86,6 +89,23 @@ services:
   #     - backend
   #   ports:
   #     - "5173:5173"
+
+  ia_test:
+    image: python:3.10
+    volumes:
+      - .:/app
+    working_dir: /app
+    depends_on:
+      - mongo
+      - redis
+      - ia_service
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB=sante_db
+      - REDIS_URL=redis://redis:6379
+    command: bash -c "pip install -r requirements.txt && python test_ia_reco.py"
+    networks:
+      - default
 
 volumes:
   mongo_data:

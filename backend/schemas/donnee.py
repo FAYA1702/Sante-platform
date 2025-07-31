@@ -20,6 +20,8 @@ class DonneeCreation(DonneeBase):
 
 class DonneeEnDB(DonneeBase):
     id: str = Field(..., description="Identifiant unique de la donnée (UUID)")
+    patient_nom: str | None = Field(None, description="Nom complet du patient")
+    device_nom: str | None = Field(None, description="Nom de l'appareil (type + série)")
     user_id: str = Field(..., description="ID du patient propriétaire de la donnée")
 
     model_config = {

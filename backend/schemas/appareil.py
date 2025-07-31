@@ -18,6 +18,7 @@ class AppareilEnDB(AppareilBase):
 
     id: str = Field(..., description="Identifiant unique (UUID)")
     user_id: Optional[str] = Field(None, description="ID du patient propriétaire (optionnel pour compatibilité avec anciens appareils)")
+    patient_username: Optional[str] = Field(None, description="Nom d'utilisateur du patient (optionnel)")
 
     model_config = {
         "from_attributes": True

@@ -12,6 +12,7 @@ class RecommandationBase(BaseModel):
 
 class RecommandationCreation(RecommandationBase):
     """Création d'une nouvelle recommandation."""
+    priorite: str = Field(default="normale", description="Priorité de la recommandation (faible, normale, élevée)")
 
 
 class RecommandationEnDB(RecommandationBase):

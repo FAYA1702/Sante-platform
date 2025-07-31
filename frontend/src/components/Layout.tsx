@@ -1,8 +1,27 @@
 // Layout.tsx — Tailwind
 import { Outlet, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { PropsWithChildren } from 'react';
 
 export default function Layout({ children }: PropsWithChildren) {
+  const [notifCount, setNotifCount] = useState(0);
+
+  // Écoute l'événement custom "new-alert" déclenché par Dashboard.tsx
+  useEffect(() => {
+    const listener = () => setNotifCount((c) => c + 1);
+    window.addEventListener('new-alert', listener as EventListener);
+    return () => window.removeEventListener('new-alert', listener as EventListener);
+  }, []);
+
+  const resetNotif = () => {
+    setNotifCount(0);
+    // fait défiler jusqu'à la section alertes si elle existe
+    const target = document.getElementById('alertes-section');
+    if (target) {
+      const y = target.getBoundingClientRect().top + window.scrollY - 80; // 80px offset for navbar
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
   const navigate = useNavigate();
   // Récupération du rôle utilisateur depuis le JWT (pour menus conditionnels)
   let role = '';
@@ -30,6 +49,17 @@ export default function Layout({ children }: PropsWithChildren) {
           {/* Menus conditionnels selon le rôle utilisateur */}
           {isAuthenticated && (
             <nav className="flex items-center space-x-4">
+              {/* Icône cloche notifications */}
+              <button onClick={resetNotif} className="relative focus:outline-none" title="Alertes récentes">
+                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-white hover:text-slate-300 transition">
+                  <path d="M15 17h5l-1.405-1.405C18.79 14.79 18 13.42 18 12V8c0-3.314-2.686-6-6-6S6 4.686 6 8v4c0 1.42-.79 2.79-1.595 3.595L3 17h5m4 4h0" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {notifCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-ping-short">
+                    {notifCount}
+                  </span>
+                )}
+              </button>
               <Link to="/" className="hover:text-slate-300">
                 Tableau de bord
               </Link>

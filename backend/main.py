@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from beanie import init_beanie
-from backend.models import Device, Donnee, Alerte, Utilisateur
+from backend.models import Device, Donnee, Alerte, Utilisateur, Department, Referral, Assignment
 from backend.models.recommandation import Recommandation
 from backend.db import get_client, MONGO_DB_NAME
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import auth, appareils, donnees, alertes, recommandations, protected, users, stats, patients
+from backend.routers import (
+    auth, appareils, donnees, alertes, recommandations, stats, users, patients, medecin,
+    filtrage_medical, assignation, departments, referrals, assignments, protected, admin
+)
 
 from contextlib import asynccontextmanager
 
@@ -15,7 +18,7 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialisation Beanie lors du démarrage, remplacement de on_event."""
     client = get_client()
-    await init_beanie(database=client[MONGO_DB_NAME], document_models=[Device, Donnee, Alerte, Recommandation, Utilisateur])
+    await init_beanie(database=client[MONGO_DB_NAME], document_models=[Device, Donnee, Alerte, Recommandation, Utilisateur, Department, Referral, Assignment])
     yield
     # Pas d'opérations de shutdown spécifiques pour l'instant
 
@@ -30,6 +33,7 @@ app = FastAPI(title="Sante Platform API", version="0.1.0", lifespan=lifespan)
 origins = [
     "http://localhost:5173",  # Frontend Vite (développement)
     "http://localhost:5174",  # Frontend Vite (port alternatif)
+    "http://localhost:5175",  # Frontend Vite (port alternatif 2)
     "http://localhost:3000",  # Autre port React éventuel
 ]
 
@@ -43,13 +47,15 @@ origins = [
 #
 # En mode développement, on autorise toutes les origines localhost quel que soit le port.
 # En production, restreindre la liste aux domaines frontaux officiels.
-# Configuration CORS simplifiée pour le développement
+# Configuration CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5174"],  # Frontend Vite actuel
+    allow_origins=origins,  # Utilise la liste des origines définie plus haut
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["Content-Length", "X-Total-Count"],
+    max_age=600,  # Durée de mise en cache des pré-vérifications CORS en secondes
 )
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -60,8 +66,14 @@ app.include_router(recommandations.router)
 app.include_router(stats.router)
 app.include_router(users.router)
 app.include_router(patients.router)
+app.include_router(medecin.router)
+app.include_router(filtrage_medical.router)
+app.include_router(assignation.router)
+app.include_router(departments.router)
+app.include_router(referrals.router)
+app.include_router(assignments.router)
 app.include_router(protected.router)
-
+app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 from fastapi.openapi.utils import get_openapi
 

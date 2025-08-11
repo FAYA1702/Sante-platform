@@ -7,7 +7,7 @@ from fastapi import APIRouter, Query, status, Depends
 
 from backend.dependencies.auth import get_current_user, verifier_roles, roles_sante
 from backend.models.utilisateur import Role, Utilisateur
-from backend.models.donnee import Donnee
+from backend.models.donnee import Donnee, SourceDonnee
 from backend.models.device import Device
 from backend.event_bus import publish as publish_event
 from backend.schemas.donnee import DonneeCreation, DonneeEnDB
@@ -138,6 +138,7 @@ async def lister_donnees(
             frequence_cardiaque=d.frequence_cardiaque,
             pression_arterielle=d.pression_arterielle,
             taux_oxygene=d.taux_oxygene,
-            date=d.date,
+            source=d.source,
+            date=d.date
         ) for d in donnees
     ]

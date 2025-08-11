@@ -117,6 +117,7 @@ export default function Data() {
     pression_arterielle: '',
     taux_oxygene: '',
     date: new Date().toISOString().slice(0, 16), // format local pour input type datetime-local
+    source: 'saisie_manuelle', // Ajout de la propriété source
   });
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState<string|null>(null);
@@ -127,7 +128,7 @@ export default function Data() {
   const itemsPerPage = 10;
   const [formError, setFormError] = useState<string|null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
   const handleSubmit = (e: React.FormEvent) => {
@@ -145,7 +146,7 @@ export default function Data() {
       })
         .then(() => {
           setSuccess('Donnée ajoutée avec succès !');
-          setForm({ ...form, frequence_cardiaque: '', pression_arterielle: '', taux_oxygene: '', date: new Date().toISOString().slice(0, 16) });
+          setForm({ ...form, frequence_cardiaque: '', pression_arterielle: '', taux_oxygene: '', date: new Date().toISOString().slice(0, 16), source: 'saisie_manuelle' });
           // Recharge la liste
           setLoading(true);
           import('../api').then(({ default: api }) => {
@@ -264,6 +265,15 @@ export default function Data() {
             <input name="taux_oxygene" type="number" min="0" max="100" value={form.taux_oxygene} onChange={handleChange} className="border px-2 py-1 rounded w-20" />
           </div>
           <div>
+            <label className="block text-xs font-semibold mb-1">Source</label>
+            <select name="source" value={form.source || 'saisie_manuelle'} onChange={handleChange} className="border px-2 py-1 rounded w-40">
+              <option value="saisie_manuelle">Saisie manuelle</option>
+              <option value="appareil_connecte">Appareil connecté</option>
+              <option value="import_fichier">Import fichier</option>
+              <option value="api_externe">API externe</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-xs font-semibold mb-1">Date</label>
             <input name="date" type="datetime-local" required value={form.date} onChange={handleChange} className="border px-2 py-1 rounded w-52" />
           </div>
@@ -297,7 +307,13 @@ export default function Data() {
                   <td className={d.frequence_cardiaque > FC_MAX ? 'text-red-600 font-semibold' : ''}>{d.frequence_cardiaque}</td>
                   <td className="px-4 py-2">{d.pression_arterielle ?? '-'}</td>
                   <td className={d.taux_oxygene < SPO2_MIN ? 'text-red-600 font-semibold' : ''}>{d.taux_oxygene}</td>
-                  <td className="px-4 py-2">{d.source ?? '-'}</td>
+                  <td className="px-4 py-2">
+                    {d.source === 'saisie_manuelle' ? 'Saisie manuelle' :
+                     d.source === 'appareil_connecte' ? 'Appareil connecté' :
+                     d.source === 'import_fichier' ? 'Import fichier' :
+                     d.source === 'api_externe' ? 'API externe' :
+                     d.source || '-'}
+                  </td>
                 </tr>
               ))}
             </tbody>

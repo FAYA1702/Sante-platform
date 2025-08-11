@@ -3,18 +3,70 @@
 %% Diagramme de Cas d'Utilisation - Plateforme de Surveillance de Santé Assistée par IA
 %%{init: {'theme':'dark','themeVariables':{ 'primaryColor':'#4F46E5','edgeLabelBackground':'#FFFFFF'}}}%%
 usecaseDiagram
-  actor U1 as [1. Utilisateur]
-  actor D1 as [2. Appareil Connecté]
+  %% Acteurs principaux
+  actor Patient as "Patient"
+  actor Medecin as "Médecin"
+  actor Admin as "Administrateur"
+  actor Technicien as "Technicien"
+  actor Device as "Appareil Connecté"
+  actor IA as "Service IA"
 
-  U1 --> (1. S'inscrire)
-  U1 --> (2. Se connecter)
-  U1 --> (3. Gérer profil)
-  U1 --> (4. Synchroniser appareil)
-  U1 --> (5. Consulter recommandations)
-  U1 --> (6. Consulter alertes)
+  %% Cas d'utilisation - Authentification
+  Patient --> (S'inscrire)
+  Patient --> (Se connecter)
+  Medecin --> (Se connecter)
+  Admin --> (Se connecter)
+  Technicien --> (Se connecter)
 
-  D1 --> (7. Envoyer données)
-  (7. Envoyer données) --> (8. Analyser données)
-  (8. Analyser données) --> (9. Générer recommandations)
-  (8. Analyser données) --> (10. Détecter anomalies)
-  (10. Détecter anomalies) --> (11. Envoyer alertes)
+  %% Cas d'utilisation - Patient
+  Patient --> (Consulter tableau de bord)
+  Patient --> (Saisir données santé)
+  Patient --> (Consulter recommandations IA)
+  Patient --> (Consulter alertes)
+  Patient --> (Gérer profil patient)
+  Patient --> (Visualiser historique)
+
+  %% Cas d'utilisation - Médecin
+  Medecin --> (Consulter dashboard médecin)
+  Medecin --> (Gérer liste patients)
+  Medecin --> (Consulter fiche patient)
+  Medecin --> (Filtrer données par patient)
+  Medecin --> (Recevoir alertes temps réel)
+  Medecin --> (Exporter rapports)
+
+  %% Cas d'utilisation - Administrateur
+  Admin --> (Gérer utilisateurs)
+  Admin --> (Consulter statistiques globales)
+  Admin --> (Gérer appareils)
+  Admin --> (Configurer système)
+  Admin --> (Accéder données démo)
+
+  %% Cas d'utilisation - Technicien
+  Technicien --> (Maintenir appareils)
+  Technicien --> (Diagnostiquer pannes)
+  Technicien --> (Gérer inventaire)
+
+  %% Cas d'utilisation - Appareil Connecté
+  Device --> (Transmettre données vitales)
+  Device --> (Synchroniser avec plateforme)
+  Device --> (Valider données capteurs)
+
+  %% Cas d'utilisation - Service IA
+  IA --> (Analyser données temps réel)
+  IA --> (Détecter anomalies)
+  IA --> (Générer recommandations)
+  IA --> (Classifier niveaux risque)
+  IA --> (Publier alertes Redis)
+
+  %% Relations système
+  (Saisir données santé) --> (Analyser données temps réel)
+  (Transmettre données vitales) --> (Analyser données temps réel)
+  (Analyser données temps réel) --> (Détecter anomalies)
+  (Détecter anomalies) --> (Générer recommandations)
+  (Détecter anomalies) --> (Publier alertes Redis)
+  (Publier alertes Redis) --> (Recevoir alertes temps réel)
+
+  %% Extensions RBAC
+  (Accéder données démo) ..> (Consulter données santé) : <<extend>>
+  (Filtrer données par patient) ..> (Consulter données santé) : <<extend>>
+  (Exporter rapports) ..> (Consulter fiche patient) : <<extend>>

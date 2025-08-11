@@ -53,7 +53,7 @@ export default function Users() {
     </>
   );
 
-  const [users, setUsers] = useState<Array<{ id: string; email: string; username: string; role: string }>>([]);
+  const [users, setUsers] = useState<Array<{ id: string; email: string; username: string; role: string; nom?: string; prenom?: string; department_id?: string; statut?: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<{ id?: string; email: string; username: string; role: string } | null>(null);
@@ -152,9 +152,78 @@ export default function Users() {
       {error && <p className="text-red-600 mb-4">{error}</p>}
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white shadow rounded">
-          <thead className="sticky top-0 bg-white shadow-sm"><tr><th className="text-left p-2">Email</th><th className="text-left p-2">Username</th><th className="text-left p-2">Rôle</th><th className="text-right p-2">Actions</th></tr></thead>
+          <thead className="sticky top-0 bg-white shadow-sm">
+            <tr>
+              <th className="text-left p-2">Email</th>
+              <th className="text-left p-2">Username</th>
+              <th className="text-left p-2">Nom complet</th>
+              <th className="text-left p-2">Rôle</th>
+              <th className="text-left p-2">Département</th>
+              <th className="text-left p-2">Statut</th>
+              <th className="text-right p-2">Actions</th>
+            </tr>
+          </thead>
           <tbody>
-            {users.map((u, idx) => (<tr key={u.id} className={idx % 2 ? 'odd:bg-slate-50' : ''}><td className="p-2">{u.email}</td><td className="p-2">{u.username}</td><td className="p-2"><span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${roleColors[u.role]}`}>{u.role}</span></td><td className="p-2 text-right space-x-2"><button onClick={() => handleEdit(u)} title="Modifier" className="px-2 py-1 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform">✏️ <span className="sr-only">Modifier</span></button><button onClick={() => handleDelete(u.id)} title="Supprimer" className="px-2 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform">🗑️ <span className="sr-only">Supprimer</span></button></td></tr>))}
+            {users.map((u, idx) => (
+              <tr key={u.id} className={idx % 2 ? 'odd:bg-slate-50' : ''}>
+                <td className="p-2">{u.email}</td>
+                <td className="p-2 font-medium">{u.username}</td>
+                <td className="p-2">
+                  {u.role === 'medecin' && (u.nom || u.prenom) 
+                    ? `Dr. ${u.prenom || ''} ${u.nom || ''}`.trim()
+                    : u.nom && u.prenom 
+                    ? `${u.prenom} ${u.nom}`
+                    : '-'
+                  }
+                </td>
+                <td className="p-2">
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${roleColors[u.role]}`}>
+                    {u.role}
+                  </span>
+                </td>
+                <td className="p-2">
+                  {u.role === 'medecin' ? (
+                    <span className="text-sm text-gray-600">
+                      {u.department_id === 'cardiologie' ? '❤️ Cardiologie' :
+                       u.department_id === 'pneumologie' ? '🫁 Pneumologie' :
+                       u.department_id === 'medecine_generale' ? '🩺 Médecine Générale' :
+                       u.department_id || '-'}
+                    </span>
+                  ) : '-'}
+                </td>
+                <td className="p-2">
+                  {u.role === 'medecin' && u.statut ? (
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      u.statut === 'actif' ? 'bg-green-100 text-green-800' :
+                      u.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
+                      u.statut === 'suspendu' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {u.statut === 'actif' ? '✅ Actif' :
+                       u.statut === 'en_attente' ? '⏳ En attente' :
+                       u.statut === 'suspendu' ? '❌ Suspendu' :
+                       u.statut}
+                    </span>
+                  ) : '-'}
+                </td>
+                <td className="p-2 text-right space-x-2">
+                  <button 
+                    onClick={() => handleEdit(u)} 
+                    title="Modifier" 
+                    className="px-2 py-1 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform"
+                  >
+                    ✏️ <span className="sr-only">Modifier</span>
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(u.id)} 
+                    title="Supprimer" 
+                    className="px-2 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform"
+                  >
+                    🗑️ <span className="sr-only">Supprimer</span>
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

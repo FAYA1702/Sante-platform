@@ -37,7 +37,15 @@ async def lister_appareils():
             type=a.type,
             numero_serie=a.numero_serie,
             user_id=a.user_id,
-            patient_username=username_map.get(a.user_id)
+            patient_username=username_map.get(a.user_id),
+            nom=getattr(a, 'nom', None),
+            modele=getattr(a, 'modele', None),
+            statut=getattr(a, 'statut', 'actif'),
+            date_installation=getattr(a, 'date_installation', None),
+            derniere_maintenance=getattr(a, 'derniere_maintenance', None),
+            created_at=getattr(a, 'created_at', None),
+            updated_at=getattr(a, 'updated_at', None),
+            is_active=getattr(a, 'is_active', True)
         )
         for a in appareils
     ]
@@ -57,7 +65,15 @@ async def lister_appareils_patient(current_user=Depends(get_current_user)):
             type=a.type,
             numero_serie=a.numero_serie,
             user_id=a.user_id,
-            patient_username=current_user.username
+            patient_username=current_user.username,
+            nom=getattr(a, 'nom', None),
+            modele=getattr(a, 'modele', None),
+            statut=getattr(a, 'statut', 'actif'),
+            date_installation=getattr(a, 'date_installation', None),
+            derniere_maintenance=getattr(a, 'derniere_maintenance', None),
+            created_at=getattr(a, 'created_at', None),
+            updated_at=getattr(a, 'updated_at', None),
+            is_active=getattr(a, 'is_active', True)
         ) for a in appareils
     ]
 
@@ -80,4 +96,12 @@ async def ajouter_appareil(appareil: AppareilCreation):
         numero_serie=doc.numero_serie,
         user_id=doc.user_id,
         patient_username=username,
+        nom=getattr(doc, 'nom', None),
+        modele=getattr(doc, 'modele', None),
+        statut=getattr(doc, 'statut', 'actif'),
+        date_installation=getattr(doc, 'date_installation', None),
+        derniere_maintenance=getattr(doc, 'derniere_maintenance', None),
+        created_at=getattr(doc, 'created_at', None),
+        updated_at=getattr(doc, 'updated_at', None),
+        is_active=getattr(doc, 'is_active', True)
     )

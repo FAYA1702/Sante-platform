@@ -1,39 +1,136 @@
 %% Diagramme d'activités - Plateforme de Surveillance de Santé Assistée par IA
 %%{init: {'theme':'dark','themeVariables':{ 'primaryColor':'#4F46E5', 'edgeLabelBackground':'#FFFFFF'}}}%%
 flowchart TD
-  %% Inscription
-  subgraph Inscription [1]
-    A1([Démarrage Inscription]) --> A2[Saisir email / mot de passe]
-    A2 --> A3[Valider données]
-    A3 --> A4{Succès ?}
-    A4 -- Non --> A5[Afficher erreur] --> A2
-    A4 -- Oui --> A6[Créer compte Utilisateur] --> A_end([Fin Inscription])
+  %% === FLUX D'AUTHENTIFICATION RBAC ===
+  subgraph Auth ["🔐 Authentification & RBAC"]
+    A1([Démarrage]) --> A2[Saisir email/password]
+    A2 --> A3[POST /auth/token]
+    A3 --> A4[Vérifier utilisateur MongoDB]
+    A4 --> A5{Utilisateur existe ?}
+    A5 -- Non --> A6[Erreur 401] --> A2
+    A5 -- Oui --> A7[Valider mot de passe bcrypt]
+    A7 --> A8{Password valide ?}
+    A8 -- Non --> A6
+    A8 -- Oui --> A9[Générer JWT token]
+    A9 --> A10[Identifier rôle utilisateur]
+    A10 --> A11{Rôle ?}
+    A11 -- Patient --> B_start
+    A11 -- Médecin --> C_start
+    A11 -- Admin --> D_start
+    A11 -- Technicien --> E_start
   end
 
-  %% Connexion & Profil
-  subgraph Auth_Profil [2]
-    B1([Démarrage Connexion]) --> B2[Entrer identifiants]
-    B2 --> B3{Auth OK ?}
-    B3 -- Non --> B4[Afficher erreur] --> B2
-    B3 -- Oui --> B5[Afficher tableau de bord]
-    B5 --> B6{Action utilisateur}
-    B6 -- Gérer profil --> B7[Modifier profil / mot de passe] --> B5
-    B6 -- Surveiller santé --> C_start
+  %% === FLUX PATIENT ===
+  subgraph Patient ["👤 Flux Patient"]
+    B_start([Dashboard Patient]) --> B1[Afficher recommandations IA]
+    B1 --> B2[Connexion SSE alertes]
+    B2 --> B3{Action patient ?}
+    B3 -- Saisir données --> B4[Formulaire données santé]
+    B4 --> B5[Valider plages valeurs]
+    B5 --> B6{Données valides ?}
+    B6 -- Non --> B7[Afficher erreurs] --> B4
+    B6 -- Oui --> B8[POST /data avec JWT]
+    B8 --> B9[Vérifier permissions RBAC]
+    B9 --> B10[Insérer MongoDB]
+    B10 --> F_start
+    B3 -- Consulter historique --> B11[GET /data filtres]
+    B11 --> B12[Afficher graphiques]
+    B3 -- Voir recommandations --> B13[GET /recommendations]
+    B13 --> B14[Afficher liste recommandations IA]
   end
 
-  %% Surveillance santé
-  subgraph Monitoring [3]
-    C_start([Démarrage Surveillance]) --> C1[Vérifier appareil]
-    C1 --> C2{Appareil connecté ?}
-    C2 -- Non --> C3[Alerte « reconnecter appareil »] --> C1
-    C2 -- Oui --> C4[Collecte données capteur]
-    C4 --> C5[Sauvegarder DonnéeSanté]
-    C5 --> C6[Analyse IA]
-    C6 --> C7{Alerte requise ?}
-    C7 -- Oui --> C8[Créer AlerteIA + notifier]
-    C7 -- Non --> C9[Générer Recommandation]
-    C8 --> C9
-    C9 --> C10[Stocker Recommandation]
-    C10 --> C11[Notifier utilisateur]
-    C11 --> C_end([Fin Surveillance])
+  %% === FLUX MÉDECIN ===
+  subgraph Medecin ["👨‍⚕️ Flux Médecin"]
+    C_start([Dashboard Médecin]) --> C1[GET /alerts/stream SSE]
+    C1 --> C2[Connexion Redis pub/sub]
+    C2 --> C3[Afficher alertes temps réel]
+    C3 --> C4{Action médecin ?}
+    C4 -- Consulter patient --> C5[Clic sur alerte]
+    C5 --> C6[GET /patients/{id}/summary]
+    C6 --> C7[Afficher fiche détaillée]
+    C4 -- Filtrer par patient --> C8[Sélection liste patients]
+    C8 --> C9[GET /data?patient_id=X]
+    C9 --> C10[Afficher données filtrées]
+    C4 -- Gérer patients --> C11[GET /users/patients]
+    C11 --> C12[Liste tous patients]
   end
+
+  %% === FLUX ADMINISTRATEUR ===
+  subgraph Admin ["🔧 Flux Administrateur"]
+    D_start([Dashboard Admin]) --> D1[GET /stats globales]
+    D1 --> D2[Afficher métriques système]
+    D2 --> D3{Action admin ?}
+    D3 -- Gérer utilisateurs --> D4[GET /users]
+    D4 --> D5[CRUD utilisateurs]
+    D3 -- Gérer appareils --> D6[GET /appareils]
+    D6 --> D7[CRUD appareils]
+    D3 -- Accès démo --> D8{DEMO_MODE activé ?}
+    D8 -- Oui --> D9[Accès données santé]
+    D8 -- Non --> D10[Accès refusé RGPD]
+  end
+
+  %% === FLUX TECHNICIEN ===
+  subgraph Technicien ["🔧 Flux Technicien"]
+    E_start([Dashboard Technicien]) --> E1[GET /appareils]
+    E1 --> E2[Afficher état appareils]
+    E2 --> E3{Action technicien ?}
+    E3 -- Maintenance --> E4[Mettre à jour statut]
+    E4 --> E5[PUT /appareils/{id}]
+    E3 -- Diagnostic --> E6[Analyser logs appareil]
+    E6 --> E7[Générer rapport]
+  end
+
+  %% === FLUX ANALYSE IA ===
+  subgraph IA ["🤖 Microservice IA"]
+    F_start([Nouvelle donnée]) --> F1[Déclencher analyse]
+    F1 --> F2[Récupérer historique patient]
+    F2 --> F3[Appliquer algorithmes détection]
+    F3 --> F4{Anomalie détectée ?}
+    F4 -- Oui --> F5[Calculer niveau gravité]
+    F5 --> F6{Niveau ?}
+    F6 -- CRITICAL --> F7[Créer alerte URGENT]
+    F6 -- WARNING --> F8[Créer alerte INFO]
+    F7 --> F9[PUBLISH Redis alerte_channel]
+    F8 --> F9
+    F9 --> F10[Notification SSE médecins]
+    F4 -- Non --> F11[Générer recommandation]
+    F11 --> F12[Insérer recommandation MongoDB]
+    F12 --> F13[PUBLISH Redis reco_channel]
+    F13 --> F14[Notification patient]
+  end
+
+  %% === FLUX STREAMING SSE ===
+  subgraph SSE ["📡 Streaming Temps Réel"]
+    G1[Redis PUBLISH] --> G2[Backend SUBSCRIBE]
+    G2 --> G3[SSE EventStream]
+    G3 --> G4[Frontend EventSource]
+    G4 --> G5[Mise à jour UI temps réel]
+    G5 --> G6[Badge notification]
+    G6 --> G7[Son/vibration alerte]
+  end
+
+  %% === FLUX SÉCURITÉ ===
+  subgraph Security ["🛡️ Sécurité & RGPD"]
+    H1[Chaque requête API] --> H2[Vérifier JWT token]
+    H2 --> H3{Token valide ?}
+    H3 -- Non --> H4[Erreur 401 Unauthorized]
+    H3 -- Oui --> H5[Vérifier rôle RBAC]
+    H5 --> H6{Permissions OK ?}
+    H6 -- Non --> H7[Erreur 403 Forbidden]
+    H6 -- Oui --> H8[Accès autorisé]
+    H8 --> H9[Audit log]
+    H9 --> H10[Anonymisation données]
+  end
+
+  %% === CONNEXIONS INTER-FLUX ===
+  F10 --> C3
+  F14 --> B1
+  B10 --> F_start
+  G5 --> C3
+  G5 --> B1
+  
+  %% Contrôles sécurité sur tous les flux
+  B8 --> H1
+  C6 --> H1
+  D4 --> H1
+  E5 --> H1

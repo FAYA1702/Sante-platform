@@ -1,23 +1,53 @@
 /**
- * Page « LoginRegister » : gère à la fois l’inscription et la connexion.
- *
- * 1. Mode connexion (`isLogin=true`) : appelle `/auth/login` et stocke le JWT.
- * 2. Mode inscription (`isLogin=false`) : appelle `/auth/register`, puis connecte automatiquement l’utilisateur.
- * 3. Une fois authentifié, le token est enregistré dans `localStorage` puis l’utilisateur est redirigé vers le Dashboard (`/`).
- *
- * Les champs affichés varient selon le mode :
- *  - Inscription : email + username + mot de passe
- *  - Connexion  : username (ou email) + mot de passe
+ * Page « LoginRegister » : gère à la fois l'inscription et la connexion.
+ * VERSION SIMPLIFIÉE POUR DEBUG
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api';
 import { useNavigate } from 'react-router-dom';
+
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+}
 
 export default function LoginRegister() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
-  const [form, setForm] = useState({ email: '', username: '', password: '', role: 'patient' });
+  const [form, setForm] = useState({ email: '', username: '', password: '', role: 'patient', department_id: '' });
   const [error, setError] = useState('');
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+
+  // Fonction handleChange pour tous les champs du formulaire
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // Charger les départements pour les patients ET médecins
+  useEffect(() => {
+    if (!isLogin && (form.role === 'patient' || form.role === 'medecin')) {
+      loadDepartments();
+    }
+  }, [isLogin, form.role]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadDepartments = async () => {
+    try {
+      setLoadingDepartments(true);
+      // Utiliser directement les départements par défaut pour éviter les erreurs API
+      setDepartments([
+        { id: 'default-general', name: 'Médecine Générale', code: 'GENERAL', description: 'Médecine générale' },
+        { id: 'default-cardio', name: 'Cardiologie', code: 'CARDIO', description: 'Maladies cardiovasculaires' },
+        { id: 'default-pneumo', name: 'Pneumologie', code: 'PNEUMO', description: 'Maladies respiratoires' }
+      ]);
+    } catch (error) {
+      console.error('Erreur lors du chargement des départements:', error);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
 
   // ⇄ Bascule entre les modes Connexion et Inscription
   const toggleMode = () => {
@@ -25,9 +55,7 @@ export default function LoginRegister() {
     setError('');
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+
 
   // ➜ Soumission du formulaire : appel API adapté au mode (login / register)
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,12 +69,19 @@ export default function LoginRegister() {
         // Stocker le JWT pour les prochains appels protégés
         localStorage.setItem('token', data.access_token);
       } else {
-        const { data } = await api.post('/auth/register', {
+        const registerData: any = {
           email: form.email,
           username: form.username,
           mot_de_passe: form.password,
-          role: form.role, // On envoie le rôle choisi (patient ou medecin)
-        });
+          role: form.role,
+        };
+        
+        // Ajouter le département si c'est un patient ou un médecin
+        if ((form.role === 'patient' || form.role === 'medecin') && form.department_id) {
+          registerData.department_id = form.department_id;
+        }
+        
+        const { data } = await api.post('/auth/register', registerData);
         // Stocker le JWT pour les prochains appels protégés
         localStorage.setItem('token', data.access_token);
       }
@@ -85,7 +120,7 @@ export default function LoginRegister() {
               id="role"
               name="role"
               value={form.role}
-              onChange={e => setForm({ ...form, role: e.target.value })}
+              onChange={e => setForm({ ...form, role: e.target.value, department_id: '' })}
               className="w-full border px-3 py-2 rounded"
               required
               title="Le patient peut consulter ses propres données. Le médecin peut consulter les données de ses patients."
@@ -94,6 +129,49 @@ export default function LoginRegister() {
               <option value="medecin">Médecin</option>
             </select>
             <p className="text-xs text-slate-500 mt-1">Le patient accède à ses données personnelles. Le médecin accède à celles de ses patients.</p>
+            
+            {/* Sélection du département pour les patients et médecins */}
+            {(form.role === 'patient' || form.role === 'medecin') && (
+              <>
+                <label className="block text-sm font-medium text-slate-700 mb-1 mt-3" htmlFor="department">
+                  {form.role === 'patient' ? 'Département médical' : 'Spécialité médicale'} 
+                  <span title={form.role === 'patient' ? 
+                    "Choisissez le département médical selon votre besoin de suivi" : 
+                    "Choisissez votre spécialité médicale"}>(?)</span>
+                </label>
+                {loadingDepartments ? (
+                  <div className="w-full border px-3 py-2 rounded bg-gray-100 text-gray-500">
+                    Chargement des départements...
+                  </div>
+                ) : (
+                  <select
+                    id="department"
+                    name="department_id"
+                    value={form.department_id}
+                    onChange={handleChange}
+                    className="w-full border px-3 py-2 rounded"
+                    required
+                    title={form.role === 'patient' ? 
+                      "Choisissez le département médical selon votre besoin de suivi" : 
+                      "Choisissez votre spécialité médicale"}
+                  >
+                    <option value="">
+                      {form.role === 'patient' ? 'Sélectionnez un département' : 'Sélectionnez votre spécialité'}
+                    </option>
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name} {dept.description && `- ${dept.description}`}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="text-xs text-slate-500 mt-1">
+                  {form.role === 'patient' ? 
+                    'Un médecin spécialisé vous sera automatiquement attribué selon votre choix.' :
+                    'Votre compte sera soumis à validation par un administrateur avant activation.'}
+                </p>
+              </>
+            )}
           </>
         )}
   

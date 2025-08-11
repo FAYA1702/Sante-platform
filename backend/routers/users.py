@@ -5,10 +5,49 @@ from beanie import PydanticObjectId
 
 from backend.dependencies.auth import get_current_user, verifier_roles
 from backend.models.utilisateur import Utilisateur, Role
+from backend.models import Department
 from backend.schemas.utilisateur import UtilisateurPublic
 from backend.schemas.role_update import RoleUpdate
 
 router = APIRouter(prefix="/users", tags=["utilisateurs"])  # noqa: E305
+
+
+async def enrichir_utilisateur_avec_departement(user: Utilisateur) -> UtilisateurPublic:
+    """Enrichit un utilisateur avec les informations de département."""
+    department_name = None
+    department_code = None
+    
+    if user.department_id:
+        try:
+            # Essaie d'abord de récupérer le département par ObjectId
+            department = await Department.get(user.department_id)
+            if department:
+                department_name = department.name
+                department_code = department.code
+        except Exception:
+            # Si échec (ex: département par défaut avec string ID), utilise des valeurs par défaut
+            if user.department_id == 'default-general':
+                department_name = 'Médecine Générale'
+                department_code = 'GENERAL'
+            elif user.department_id == 'default-cardio':
+                department_name = 'Cardiologie'
+                department_code = 'CARDIO'
+            elif user.department_id == 'default-pneumo':
+                department_name = 'Pneumologie'
+                department_code = 'PNEUMO'
+            else:
+                department_name = 'Département inconnu'
+                department_code = 'UNKNOWN'
+    
+    return UtilisateurPublic(
+        id=str(user.id),
+        email=user.email,
+        username=user.username,
+        role=user.role,
+        department_id=user.department_id,
+        department_name=department_name,
+        department_code=department_code
+    )
 
 
 
@@ -33,7 +72,12 @@ async def lister_utilisateurs(skip: int = 0, limit: int = 20, q: str | None = No
         ]}
     cursor = Utilisateur.find(filtre).skip(skip).limit(limit)
     users = await cursor.to_list()
-    return [UtilisateurPublic(id=str(u.id), email=u.email, username=u.username, role=u.role) for u in users]
+    # Enrichir chaque utilisateur avec les informations de département
+    enriched_users = []
+    for user in users:
+        enriched_user = await enrichir_utilisateur_avec_departement(user)
+        enriched_users.append(enriched_user)
+    return enriched_users
 
 
 from backend.schemas.utilisateur import UtilisateurAdminCreate, UtilisateurUpdate
@@ -55,9 +99,10 @@ async def creer_utilisateur(payload: UtilisateurAdminCreate):
         username=payload.username,
         mot_de_passe_hache=hacher_mot_de_passe(payload.mot_de_passe),
         role=payload.role,
+        department_id=payload.department_id,
     )
     await user.insert()
-    return UtilisateurPublic(id=str(user.id), email=user.email, username=user.username, role=user.role)
+    return await enrichir_utilisateur_avec_departement(user)
 
 
 @router.patch("/{user_id}", response_model=UtilisateurPublic, dependencies=[Depends(verifier_roles([Role.admin]))])
@@ -78,9 +123,11 @@ async def mettre_a_jour_utilisateur(user_id: PydanticObjectId, payload: Utilisat
         user.username = payload.username
     if payload.role is not None:
         user.role = payload.role
+    if payload.department_id is not None:
+        user.department_id = payload.department_id
 
     await user.save()
-    return UtilisateurPublic(id=str(user.id), email=user.email, username=user.username, role=user.role)
+    return await enrichir_utilisateur_avec_departement(user)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT,

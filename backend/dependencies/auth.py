@@ -65,3 +65,17 @@ def verifier_roles(roles_autorises: List[Role]):
         return user
 
     return _verifier
+
+
+def require_role(role: str):
+    """Génère une dépendance qui valide que l'utilisateur possède le rôle spécifié."""
+    
+    async def _verifier(user: Utilisateur = Depends(get_current_user)) -> Utilisateur:
+        if user.role != role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail=f"Accès refusé. Rôle requis: {role}"
+            )
+        return user
+    
+    return _verifier

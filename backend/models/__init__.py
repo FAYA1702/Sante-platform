@@ -6,6 +6,8 @@ from .donnee import Donnee
 from .alerte import Alerte
 from .recommandation import Recommandation
 from .utilisateur import Utilisateur
+from .department import Department
+from .referral import Referral, Assignment
 
 __all__ = [
     "Device",
@@ -13,4 +15,7 @@ __all__ = [
     "Alerte",
     "Recommandation",
     "Utilisateur",
+    "Department",
+    "Referral",
+    "Assignment",
 ]

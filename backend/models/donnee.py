@@ -2,19 +2,29 @@
 
 from datetime import datetime
 from typing import Optional
+from enum import Enum
 
 from beanie import Document
 from pydantic import Field
 
 
+class SourceDonnee(str, Enum):
+    """Source de provenance des données de santé."""
+    APPAREIL_CONNECTE = "appareil_connecte"
+    SAISIE_MANUELLE = "saisie_manuelle"
+    IMPORT_FICHIER = "import_fichier"
+    API_EXTERNE = "api_externe"
+
+
 class Donnee(Document):
     """Document représentant une mesure de santé provenant d'un appareil."""
 
-    device_id: str = Field(..., description="Identifiant de l'appareil (UUID)")
+    device_id: Optional[str] = Field(None, description="Identifiant de l'appareil (UUID)")
     user_id: str = Field(..., description="ID du patient propriétaire de la donnée")  # RGPD : chaque donnée est liée à un patient
     frequence_cardiaque: Optional[float] = Field(None, description="Fréquence cardiaque en bpm")
     pression_arterielle: Optional[str] = Field(None, description="Pression artérielle ex: '120/80'")
     taux_oxygene: Optional[float] = Field(None, description="Taux d'oxygène SpO2 en %")
+    source: SourceDonnee = Field(default=SourceDonnee.SAISIE_MANUELLE, description="Source de provenance de la donnée")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = Field(default=True)

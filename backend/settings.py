@@ -23,3 +23,7 @@ from os import getenv
 
 # Lis la variable d'environnement DEMO_MODE ("true"/"false", case-insensible)
 DEMO_MODE: bool = getenv("DEMO_MODE", "false").lower() in {"1", "true", "yes"}
+
+# Configuration MongoDB
+MONGODB_URL: str = getenv("MONGODB_URL", "mongodb://mongo:27017")
+DATABASE_NAME: str = getenv("DATABASE_NAME", "sante_db")

@@ -1,22 +1,90 @@
 %%{init: {'theme':'dark','themeVariables':{ 'primaryColor':'#4F46E5', 'edgeLabelBackground':'#FFFFFF'}}}%%
 sequenceDiagram
-  participant U as [1. Utilisateur]
-  participant D as [2. AppareilConnecte]
-  participant S as [3. Serveur]
-  participant IA as [4. Service_IA]
-  participant N as [5. Service_Notification]
-  participant DB as [6. BaseDeDonnees]
+  participant U as "👤 Utilisateur"
+  participant F as "🌐 Frontend React"
+  participant A as "🔐 Auth Service"
+  participant B as "⚡ Backend API"
+  participant IA as "🤖 Service IA"
+  participant R as "📡 Redis"
+  participant DB as "🗄️ MongoDB"
+  participant D as "📱 Device IoT"
 
-  U->>D: [1. Démarrer collecte]
-  D->>S: [2. Envoyer données_santé]
-  S->>DB: [3. Sauvegarder DonneeSante]
-  S->>IA: [4. Analyser données]
-  alt [5a. Alerte requise]
-    IA-->>S: Résultat alerte
-    S->>N: [6. Envoyer alerte IA]
-    N-->>U: [7. Notifier utilisateur - Alerte]
-  else [5b. Recommandation]
-    IA-->>S: Résultat recommandation
-    S->>N: [6. Envoyer recommandation]
-    N-->>U: [7. Notifier utilisateur - Reco]
+  %% === FLUX D'AUTHENTIFICATION ===
+  Note over U,DB: 🔐 Phase d'Authentification
+  U->>F: 1. Connexion (email, password)
+  F->>A: 2. POST /auth/token
+  A->>DB: 3. Vérifier utilisateur
+  DB-->>A: 4. Données utilisateur
+  A->>A: 5. Valider mot de passe (bcrypt)
+  A->>A: 6. Générer JWT token
+  A-->>F: 7. Token JWT + rôle
+  F->>F: 8. Stocker token (localStorage)
+  F-->>U: 9. Redirection dashboard
+
+  %% === FLUX COLLECTE DE DONNÉES ===
+  Note over U,DB: 📊 Phase de Collecte de Données
+  
+  %% Saisie manuelle
+  U->>F: 10. Saisir données santé
+  F->>B: 11. POST /data (+ JWT header)
+  B->>B: 12. Valider JWT & permissions
+  B->>DB: 13. Insérer Donnee
+  DB-->>B: 14. Confirmation insertion
+  
+  %% Ou collecte automatique
+  par Collecte Device IoT
+    D->>B: 10b. Transmettre données capteurs
+    B->>B: 11b. Valider données device
+    B->>DB: 12b. Insérer Donnee (device_id)
+  end
+
+  %% === FLUX ANALYSE IA ===
+  Note over B,R: 🤖 Phase d'Analyse IA Temps Réel
+  B->>IA: 15. Déclencher analyse (nouvelle donnée)
+  IA->>DB: 16. Récupérer historique patient
+  DB-->>IA: 17. Données historiques
+  IA->>IA: 18. Analyser anomalies (algorithmes ML)
+  
+  alt Anomalie détectée (critique)
+    IA->>DB: 19a. Créer Alerte (niveau CRITICAL)
+    IA->>R: 20a. PUBLISH alerte_channel
+    Note right of R: 📡 Streaming temps réel
+    R-->>F: 21a. SSE: nouvelle alerte
+    F-->>U: 22a. 🚨 Notification alerte critique
+  else Recommandation générée
+    IA->>DB: 19b. Créer Recommandation
+    IA->>R: 20b. PUBLISH reco_channel
+    R-->>F: 21b. SSE: nouvelle recommandation
+    F-->>U: 22b. 💡 Affichage recommandation
+  end
+
+  %% === FLUX CONSULTATION MÉDECIN ===
+  Note over U,DB: 👨‍⚕️ Phase Consultation Médicale
+  U->>F: 23. Médecin consulte dashboard
+  F->>B: 24. GET /alerts/stream (SSE)
+  B->>R: 25. SUBSCRIBE alertes_temps_reel
+  
+  loop Streaming continu
+    R-->>B: 26. Nouvelle alerte patient
+    B-->>F: 27. SSE: alerte + user_id
+    F->>F: 28. Mise à jour UI temps réel
+    F-->>U: 29. 🔔 Badge notification
+  end
+  
+  U->>F: 30. Clic sur alerte → fiche patient
+  F->>B: 31. GET /patients/{user_id}/summary
+  B->>DB: 32. Récupérer données patient
+  DB-->>B: 33. Historique + recommandations
+  B-->>F: 34. Données patient complètes
+  F-->>U: 35. 📋 Affichage fiche détaillée
+
+  %% === FLUX RBAC ET SÉCURITÉ ===
+  Note over A,DB: 🛡️ Contrôles de Sécurité Continus
+  
+  rect rgb(255, 200, 200)
+    Note over B: Chaque requête API vérifie:
+    Note over B: ✓ JWT valide
+    Note over B: ✓ Rôle autorisé (RBAC)
+    Note over B: ✓ Accès aux données patient
+    Note over B: ✓ Conformité RGPD
   end

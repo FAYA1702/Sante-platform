@@ -9,6 +9,7 @@ class UtilisateurCreation(BaseModel):
     username: str = Field(..., min_length=3, pattern=r'^[a-zA-Z0-9_.-]+$', description="Nom d'utilisateur unique (3 caractères min, sans espace)")
     mot_de_passe: str = Field(..., min_length=6, description="Mot de passe de l'utilisateur")
     role: str = Field('patient', description="Rôle de l'utilisateur (patient ou medecin seulement)")
+    department_id: str | None = Field(None, description="ID du département choisi (requis pour patients)")
 
 
 class UtilisateurLogin(BaseModel):
@@ -23,6 +24,10 @@ class UtilisateurPublic(BaseModel):
     email: EmailStr
     username: str
     role: str
+    # Champs département (optionnels pour rétrocompatibilité)
+    department_id: str | None = None
+    department_name: str | None = None
+    department_code: str | None = None
 
 
 class UtilisateurAdminCreate(BaseModel):
@@ -33,6 +38,7 @@ class UtilisateurAdminCreate(BaseModel):
     username: str = Field(..., min_length=3, pattern=r'^[a-zA-Z0-9_.-]+$')
     mot_de_passe: str = Field(..., min_length=6)
     role: str = Field(..., description="Rôle attribué à la création")
+    department_id: str | None = Field(None, description="ID du département (requis pour médecins)")
 
 
 class UtilisateurUpdate(BaseModel):
@@ -41,6 +47,7 @@ class UtilisateurUpdate(BaseModel):
     email: EmailStr | None = None
     username: str | None = Field(None, min_length=3, pattern=r'^[a-zA-Z0-9_.-]+$')
     role: str | None = None
+    department_id: str | None = Field(None, description="ID du département")
 
 
 class Token(BaseModel):

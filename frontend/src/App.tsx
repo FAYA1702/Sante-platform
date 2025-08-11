@@ -10,6 +10,8 @@ import Data from './pages/Data';
 import Devices from './pages/Devices';
 import Users from './pages/Users';
 import PatientPage from './pages/PatientPage';
+import MedecinDashboard from './pages/MedecinDashboard';
+import Assignations from './pages/Assignations';
 
 // Lecture du mode (demo | production)
 const IS_DEMO = import.meta.env.VITE_APP_MODE === 'demo';
@@ -65,14 +67,6 @@ export default function App() {
     <Routes>
       <Route path="/auth" element={<LoginRegister />} />
       <Route
-        path="/*"
-        element={
-          <PrivateRoute>
-            <Layout />
-          </PrivateRoute>
-        }
-      />
-      <Route
         path="/"
         element={
           <PrivateRoute>
@@ -81,6 +75,14 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route
+          path="medecin"
+          element={
+            <PrivateRoute allowedRoles={['medecin']}>
+              <MedecinDashboard />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="data"
           element={
@@ -106,6 +108,14 @@ export default function App() {
           }
         />
         <Route path="patients/:id" element={<PatientPage />} />
+        <Route
+          path="assignations"
+          element={
+            <PrivateRoute allowedRoles={['patient', 'medecin']}>
+              <Assignations />
+            </PrivateRoute>
+          }
+        />
       </Route>
     </Routes>
   );

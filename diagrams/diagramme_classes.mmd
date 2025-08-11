@@ -1,50 +1,188 @@
 %% Diagramme de Classes - Plateforme de Surveillance de Santé Assistée par IA
 %%{init: {'theme':'dark','themeVariables':{ 'primaryColor':'#4F46E5','classTextColor':'#FFFFFF','edgeLabelBackground':'#4F46E5'}}}%%
 classDiagram
-  %% [1]
+  %% Classe principale Utilisateur avec RBAC
   class Utilisateur {
-    - id: String
+    - id: ObjectId
     - nom: String
+    - prenom: String
     - email: String
-    - mot_de_passe: String
-    - role: String
+    - mot_de_passe_hash: String
+    - role: RoleEnum
+    - telephone: String
+    - date_naissance: Date
+    - is_active: Boolean
+    - created_at: DateTime
+    - updated_at: DateTime
+    + authenticate(password: String) Boolean
+    + has_role(role: String) Boolean
+    + get_permissions() List~String~
   }
-  %% [2]
-  class DonneeSante {
-    - id: String
-    - utilisateur_id: String
-    - frequence_cardiaque: Float
-    - pression_arterielle: String
-    - taux_oxygene: Float
-    - date: DateTime
+
+  %% Énumération des rôles
+  class RoleEnum {
+    <<enumeration>>
+    PATIENT
+    MEDECIN
+    ADMIN
+    TECHNICIEN
   }
-  %% [3]
-  class AlerteIA {
-    - id: String
-    - utilisateur_id: String
+
+  %% Classe Données de Santé enrichie
+  class Donnee {
+    - id: ObjectId
+    - user_id: ObjectId
+    - device_id: ObjectId?
+    - frequence_cardiaque: Float?
+    - pression_systolique: Float?
+    - pression_diastolique: Float?
+    - taux_oxygene: Float?
+    - temperature: Float?
+    - poids: Float?
+    - glycemie: Float?
+    - timestamp: DateTime
+    - patient_nom: String
+    - is_active: Boolean
+    - created_at: DateTime
+    + validate_ranges() Boolean
+    + to_dict() Dict
+    + calculate_risk_score() Float
+  }
+
+  %% Classe Alerte IA enrichie
+  class Alerte {
+    - id: ObjectId
+    - user_id: ObjectId
+    - titre: String
     - message: String
-    - niveau: String
-    - date: DateTime
+    - niveau: NiveauEnum
+    - type_alerte: TypeAlerteEnum
+    - donnee_source_id: ObjectId?
+    - is_read: Boolean
+    - timestamp: DateTime
+    - created_at: DateTime
+    + mark_as_read() void
+    + get_priority() Integer
+    + format_message() String
   }
-  %% [4]
+
+  %% Énumérations pour Alerte
+  class NiveauEnum {
+    <<enumeration>>
+    INFO
+    WARNING
+    CRITICAL
+    URGENT
+  }
+
+  class TypeAlerteEnum {
+    <<enumeration>>
+    ANOMALIE_CARDIAQUE
+    PRESSION_ELEVEE
+    OXYGENE_BAS
+    TEMPERATURE_ANORMALE
+    GLYCEMIE_CRITIQUE
+  }
+
+  %% Classe Recommandation IA
   class Recommandation {
-    - id: String
-    - utilisateur_id: String
+    - id: ObjectId
+    - user_id: ObjectId
+    - titre: String?
+    - description: String?
     - contenu: String
-    - date: DateTime
+    - type_recommandation: String
+    - priorite: Integer
+    - is_active: Boolean
+    - created_at: DateTime
+    - updated_at: DateTime
+    + parse_content() Dict
+    + get_formatted_content() String
+    + is_expired() Boolean
   }
-  %% [5]
-  class AppareilConnecte {
-    - id: String
-    - type: String
+
+  %% Classe Device (Appareil Connecté)
+  class Device {
+    - id: ObjectId
+    - user_id: ObjectId?
+    - nom: String
+    - type: TypeDeviceEnum
+    - marque: String
+    - modele: String
     - numero_serie: String
-    - utilisateur_id: String
+    - date_installation: DateTime?
+    - derniere_synchronisation: DateTime?
+    - statut: StatutDeviceEnum
+    - is_active: Boolean
+    - created_at: DateTime
+    - updated_at: DateTime
+    + sync_data() Boolean
+    + check_status() StatutDeviceEnum
+    + get_last_data() Donnee?
   }
-  %% [6]
-  Utilisateur "1" o-- "*" DonneeSante : possede
-  %% [7]
-  Utilisateur "1" o-- "*" AlerteIA : recoit
-  %% [8]
-  Utilisateur "1" o-- "*" Recommandation : recoit
-  %% [9]
-  Utilisateur "1" o-- "*" AppareilConnecte : utilise
+
+  %% Énumérations pour Device
+  class TypeDeviceEnum {
+    <<enumeration>>
+    TENSIOMETRE
+    OXYMETRE
+    BALANCE
+    GLUCOMETRE
+    THERMOMETRE
+    MONTRE_CONNECTEE
+  }
+
+  class StatutDeviceEnum {
+    <<enumeration>>
+    ACTIF
+    INACTIF
+    EN_PANNE
+    EN_MAINTENANCE
+  }
+
+  %% Services métier
+  class ServiceIA {
+    <<service>>
+    + analyser_donnees(donnee: Donnee) AnalyseResult
+    + detecter_anomalies(donnees: List~Donnee~) List~Alerte~
+    + generer_recommandations(user_id: ObjectId) List~Recommandation~
+    + classifier_risque(donnee: Donnee) RisqueLevel
+    + publier_alerte_redis(alerte: Alerte) void
+  }
+
+  class ServiceAuth {
+    <<service>>
+    + authenticate_user(email: String, password: String) Token?
+    + generate_jwt(user: Utilisateur) String
+    + verify_token(token: String) Utilisateur?
+    + check_permissions(user: Utilisateur, resource: String) Boolean
+  }
+
+  class ServiceNotification {
+    <<service>>
+    + envoyer_alerte_temps_reel(alerte: Alerte) void
+    + stream_sse_alerts(user_id: ObjectId) EventStream
+    + publier_redis(channel: String, message: String) void
+  }
+
+  %% Relations principales
+  Utilisateur ||--o{ Donnee : "possède"
+  Utilisateur ||--o{ Alerte : "reçoit"
+  Utilisateur ||--o{ Recommandation : "reçoit"
+  Utilisateur ||--o{ Device : "utilise"
+  Utilisateur }o--|| RoleEnum : "a un rôle"
+  
+  Device ||--o{ Donnee : "génère"
+  Donnee ||--o{ Alerte : "déclenche"
+  
+  Alerte }o--|| NiveauEnum : "a un niveau"
+  Alerte }o--|| TypeAlerteEnum : "a un type"
+  Device }o--|| TypeDeviceEnum : "a un type"
+  Device }o--|| StatutDeviceEnum : "a un statut"
+  
+  %% Relations avec services
+  ServiceIA ..> Donnee : "analyse"
+  ServiceIA ..> Alerte : "génère"
+  ServiceIA ..> Recommandation : "crée"
+  ServiceAuth ..> Utilisateur : "authentifie"
+  ServiceNotification ..> Alerte : "diffuse"

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class AlerteBase(BaseModel):
+    user_id: str = Field(..., description="ID du patient concerné par l'alerte")
     message: str = Field(..., description="Contenu de l'alerte")
     niveau: str = Field(..., description="Niveau de gravité, ex: 'faible', 'moyen', 'élevé'")
     date: datetime = Field(..., description="Date de génération de l'alerte")

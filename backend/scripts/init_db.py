@@ -98,10 +98,26 @@ async def main() -> None:
         niveau="moyen",
     ).insert()
 
-    # --- Recommandation ---
+    # --- Recommandations ---
     await Recommandation(
         user_id=str(patient.id),
-        contenu="Buvez de l'eau et reposez-vous.",
+        titre="Hydratation",
+        description="Buvez au moins 1,5L d'eau par jour pour maintenir une bonne hydratation. Évitez les boissons sucrées.",
+        date=datetime.utcnow(),
+    ).insert()
+
+    await Recommandation(
+        user_id=str(patient.id),
+        titre="Activité physique",
+        description="Marchez 30 minutes par jour pour améliorer votre circulation sanguine et votre santé cardiovasculaire.",
+        date=datetime.utcnow(),
+    ).insert()
+
+    await Recommandation(
+        user_id=str(patient.id),
+        titre="Surveillance de la tension",
+        description="Votre tension artérielle est légèrement élevée. Évitez le sel et consultez votre médecin si cela persiste.",
+        date=datetime.utcnow(),
     ).insert()
 
     print("\u2705 Base MongoDB initialisée avec succès !")

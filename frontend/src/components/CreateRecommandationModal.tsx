@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 interface CreateRecommandationModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (values: { user_id: string; titre: string; description: string }) => void;
+  onSubmit: (values: { patient_id: string; titre: string; description: string; alerte_id?: string }) => void;
   patient?: { id: string; username: string };
-  alerte?: { message: string };
+  alerte?: { id: string; message: string };
 }
 
 const CreateRecommandationModal: React.FC<CreateRecommandationModalProps> = ({ open, onClose, onSubmit, patient, alerte }) => {
@@ -40,7 +40,7 @@ const CreateRecommandationModal: React.FC<CreateRecommandationModalProps> = ({ o
           onSubmit={e => {
             e.preventDefault();
             if (!patient) return;
-            onSubmit({ user_id: patient.id, titre, description });
+            onSubmit({ patient_id: patient.id, titre, description, alerte_id: alerte?.id });
           }}
         >
           <div className="mb-4">

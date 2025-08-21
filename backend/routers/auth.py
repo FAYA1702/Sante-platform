@@ -87,9 +87,8 @@ async def inscription(utilisateur: UtilisateurCreation):
     user = Utilisateur(**user_data)
     await user.insert()
     
-    # Attribution automatique du médecin pour les patients
-    if utilisateur.role == "patient" and utilisateur.department_id:
-        await _attribuer_medecin_automatiquement(user, utilisateur.department_id)
+    # Assignation du médecin sera gérée par le technicien médical via l'interface dédiée
+    # Plus d'assignation automatique lors de l'inscription
     
     # Ajoute username dans le JWT pour affichage frontend (nom lisible)
     token = creer_jwt({"sub": str(user.id), "role": user.role, "username": user.username})
@@ -125,44 +124,4 @@ async def connexion(credentials: UtilisateurLogin):
     return Token(access_token=token, token_type="bearer")
 
 
-async def _attribuer_medecin_automatiquement(patient: Utilisateur, department_id: str):
-    """Attribution automatique d'un médecin au patient basée sur l'IA et la charge de travail."""
-    try:
-        # Rechercher les médecins du département spécifié
-        medecins_departement = await Utilisateur.find({
-            "role": Role.medecin,
-            "department_id": department_id,
-            "is_active": True
-        }).to_list()
-        
-        if not medecins_departement:
-            print(f"[ATTRIBUTION] Aucun médecin trouvé dans le département {department_id}")
-            return
-        
-        # Algorithme IA simple : choisir le médecin avec le moins de patients
-        medecin_optimal = None
-        min_patients = float('inf')
-        
-        for medecin in medecins_departement:
-            nb_patients = len(medecin.patient_ids)
-            if nb_patients < min_patients:
-                min_patients = nb_patients
-                medecin_optimal = medecin
-        
-        if medecin_optimal:
-            # Créer l'attribution bidirectionnelle
-            if str(medecin_optimal.id) not in patient.medecin_ids:
-                patient.medecin_ids.append(str(medecin_optimal.id))
-                await patient.save()
-            
-            if str(patient.id) not in medecin_optimal.patient_ids:
-                medecin_optimal.patient_ids.append(str(patient.id))
-                await medecin_optimal.save()
-            
-            print(f"[ATTRIBUTION] Patient {patient.username} attribué au Dr. {medecin_optimal.username} ({min_patients} patients)")
-        else:
-            print(f"[ATTRIBUTION] Aucun médecin optimal trouvé dans le département {department_id}")
-            
-    except Exception as e:
-        print(f"[ATTRIBUTION] Erreur lors de l'attribution automatique: {e}")
-        # Ne pas faire échouer l'inscription si l'attribution échoue
+# Fonction supprimée - l'assignation sera gérée par le technicien médical

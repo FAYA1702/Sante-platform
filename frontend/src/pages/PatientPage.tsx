@@ -8,6 +8,11 @@ interface PatientSummary {
   nom: string;
   email: string;
   last_data: any;
+  medecin_info?: {
+    nom: string;
+    username: string;
+    department: string;
+  };
 }
 
 interface PatientHistory {
@@ -52,9 +57,9 @@ export default function PatientPage() {
   return (
     <div className="p-6 max-w-6xl mx-auto">
       {/* Breadcrumb */}
-      <nav className="mb-6">
+      <nav className="mb-6 flex items-center gap-2 text-sm">
         <Link to="/" className="text-blue-600 hover:underline">Tableau de bord</Link>
-        <span className="mx-2 text-gray-500">›</span>
+        <i className="bi bi-chevron-right text-gray-500"></i>
         <span className="text-gray-700">Fiche patient</span>
       </nav>
 
@@ -62,10 +67,7 @@ export default function PatientPage() {
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-center space-x-4">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-            <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="text-blue-600">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M5.5 21a7.5 7.5 0 0 1 13 0" />
-            </svg>
+            <i className="bi bi-person-circle text-blue-600 text-4xl"></i>
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{summary.nom}</h1>
@@ -94,6 +96,25 @@ export default function PatientPage() {
             </div>
           </div>
         )}
+
+        {/* Médecin référent */}
+        {summary.medecin_info && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h3 className="font-semibold mb-2 text-blue-900 flex items-center">
+              <i className="bi bi-person-badge mr-2"></i>
+              Votre médecin référent
+            </h3>
+            <div className="text-sm">
+              <div className="mb-1">
+                <span className="font-medium text-blue-800">Dr. {summary.medecin_info.nom}</span>
+              </div>
+              <div className="text-blue-600">
+                <i className="bi bi-hospital mr-1"></i>
+                {summary.medecin_info.department}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Onglets historique */}
@@ -102,9 +123,7 @@ export default function PatientPage() {
         <div className="bg-white rounded-lg shadow">
           <div className="p-4 border-b">
             <h2 className="text-lg font-semibold flex items-center">
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="mr-2 text-red-500">
-                <path d="M15 17h5l-1.405-1.405C18.79 14.79 18 13.42 18 12V8c0-3.314-2.686-6-6-6S6 4.686 6 8v4c0 1.42-.79 2.79-1.595 3.595L3 17h5m4 4h0" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <i className="bi bi-bell-fill mr-2 text-red-500"></i>
               Alertes ({history?.alertes.length || 0})
             </h2>
           </div>
@@ -135,9 +154,7 @@ export default function PatientPage() {
         <div className="bg-white rounded-lg shadow">
           <div className="p-4 border-b">
             <h2 className="text-lg font-semibold flex items-center">
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="mr-2 text-green-500">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <i className="bi bi-activity mr-2 text-green-500"></i>
               Données ({history?.donnees.length || 0})
             </h2>
           </div>
@@ -167,9 +184,7 @@ export default function PatientPage() {
           <div className="p-4 border-b">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold flex items-center">
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="mr-2 text-purple-500">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <i className="bi bi-lightbulb-fill mr-2 text-purple-500"></i>
                 Recommandations IA ({history?.recommandations.length || 0})
               </h2>
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">

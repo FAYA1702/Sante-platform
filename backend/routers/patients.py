@@ -30,6 +30,9 @@ async def patient_summary(patient_id: str, current_user=Depends(get_current_user
         patient = await Utilisateur.find_one(Utilisateur.id == ObjectId(patient_id))
         if not patient or str(current_user.id) not in patient.medecin_ids:
             raise HTTPException(status_code=403, detail="Patient non assigné à ce médecin")
+    elif current_user.role == Role.technicien:
+        # Les techniciens n'ont pas accès aux données détaillées des patients
+        raise HTTPException(status_code=403, detail="Accès réservé au patient, au médecin assigné ou à l'admin")
     # Admin peut voir tous les patients
     
     oid = ObjectId(patient_id)
@@ -62,12 +65,16 @@ async def patient_history(patient_id: str, current_user=Depends(get_current_user
         patient = await Utilisateur.find_one(Utilisateur.id == ObjectId(patient_id))
         if not patient or str(current_user.id) not in patient.medecin_ids:
             raise HTTPException(status_code=403, detail="Patient non assigné à ce médecin")
+    elif current_user.role == Role.technicien:
+        # Les techniciens n'ont pas accès à l'historique complet des patients
+        raise HTTPException(status_code=403, detail="Accès réservé au patient, au médecin assigné ou à l'admin")
     # Admin peut voir tous les patients
     
     # CORRECTION: user_id est stocké comme string dans toutes les collections
     try:
         data_cursor = Donnee.find(Donnee.user_id == patient_id).sort("-date")
         alert_cursor = Alerte.find(Alerte.user_id == patient_id).sort("-date")
+        # Utiliser le champ cohérent `user_id` pour les recommandations et trier par `date`
         reco_cursor = Recommandation.find(Recommandation.user_id == patient_id).sort("-date")
 
         donnees = await data_cursor.to_list()

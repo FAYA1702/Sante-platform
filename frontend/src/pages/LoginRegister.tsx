@@ -13,6 +13,15 @@ interface Department {
   description?: string;
 }
 
+interface Medecin {
+  id: string;
+  username: string;
+  email: string;
+  nom?: string;
+  prenom?: string;
+  department_id: string;
+}
+
 export default function LoginRegister() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
@@ -92,8 +101,8 @@ export default function LoginRegister() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">  
-      <div className="w-full max-w-sm bg-white/80 backdrop-blur rounded-xl shadow-lg p-8">
+    <div className="min-h-screen flex items-center justify-center">  
+      <div className="w-full max-w-sm bg-white/70 dark:bg-gray-900/60 backdrop-blur rounded-xl shadow ring-1 ring-sky-100 dark:ring-sky-900 p-8">
       <h2 className="text-center text-2xl font-semibold mb-6">
         {isLogin ? 'Connexion' : 'Inscription'}
       </h2>
@@ -110,7 +119,7 @@ export default function LoginRegister() {
               value={form.email}
               onChange={handleChange}
               required
-              className="w-full border px-3 py-2 rounded"
+              className="w-full border px-3 py-2 rounded bg-white text-gray-900 placeholder-gray-500"
             />
             {/* Champ de sélection du rôle */}
             <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="role">
@@ -121,7 +130,7 @@ export default function LoginRegister() {
               name="role"
               value={form.role}
               onChange={e => setForm({ ...form, role: e.target.value, department_id: '' })}
-              className="w-full border px-3 py-2 rounded"
+              className="w-full border px-3 py-2 rounded bg-white text-gray-900"
               required
               title="Le patient peut consulter ses propres données. Le médecin peut consulter les données de ses patients."
             >
@@ -149,7 +158,7 @@ export default function LoginRegister() {
                     name="department_id"
                     value={form.department_id}
                     onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded"
+                    className="w-full border px-3 py-2 rounded bg-white text-gray-900"
                     required
                     title={form.role === 'patient' ? 
                       "Choisissez le département médical selon votre besoin de suivi" : 
@@ -167,7 +176,7 @@ export default function LoginRegister() {
                 )}
                 <p className="text-xs text-slate-500 mt-1">
                   {form.role === 'patient' ? 
-                    'Un médecin spécialisé vous sera automatiquement attribué selon votre choix.' :
+                    'Un médecin vous sera assigné automatiquement par notre système IA selon vos besoins.' :
                     'Votre compte sera soumis à validation par un administrateur avant activation.'}
                 </p>
               </>
@@ -182,7 +191,7 @@ export default function LoginRegister() {
           value={form.username}
           onChange={handleChange}
           required
-          className="w-full border px-3 py-2 rounded"
+          className="w-full border px-3 py-2 rounded bg-white text-gray-900 placeholder-gray-500"
         />
   
         <input
@@ -192,7 +201,7 @@ export default function LoginRegister() {
           value={form.password}
           onChange={handleChange}
           required
-          className="w-full border px-3 py-2 rounded"
+          className="w-full border px-3 py-2 rounded bg-white text-gray-900 placeholder-gray-500"
         />
   
         <button

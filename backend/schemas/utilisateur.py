@@ -22,7 +22,7 @@ class UtilisateurPublic(BaseModel):
 
     id: str
     email: EmailStr
-    username: str
+    username: str | None = None
     role: str
     # Champs département (optionnels pour rétrocompatibilité)
     department_id: str | None = None

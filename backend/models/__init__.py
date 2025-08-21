@@ -7,7 +7,7 @@ from .alerte import Alerte
 from .recommandation import Recommandation
 from .utilisateur import Utilisateur
 from .department import Department
-from .referral import Referral, Assignment
+# from .referral import Referral, Assignment  # Fichiers supprimés
 
 __all__ = [
     "Device",
@@ -16,6 +16,4 @@ __all__ = [
     "Recommandation",
     "Utilisateur",
     "Department",
-    "Referral",
-    "Assignment",
 ]

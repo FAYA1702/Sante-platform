@@ -3,6 +3,7 @@
  */
 import { useState, useEffect } from 'react';
 import api from '../api';
+import { StethoscopeIcon, CheckIcon, XMarkIcon } from './icons';
 
 interface PendingDoctor {
   id: string;
@@ -63,129 +64,120 @@ export default function AdminApproval() {
 
   const approveDoctor = async (doctorId: string) => {
     try {
-      await api.patch(`/admin/medecins/${doctorId}/approuver`);
+      console.log('Tentative d\'approbation du médecin:', doctorId);
+      const response = await api.patch(`/admin/medecins/${doctorId}/approuver`);
+      console.log('Réponse approbation:', response);
       await loadPendingDoctors(); // Recharger la liste
+      setError(''); // Clear any previous errors
     } catch (err: any) {
-      setError('Erreur lors de l\'approbation du médecin');
-      console.error(err);
+      console.error('Erreur approbation:', err);
+      setError(`Erreur lors de l'approbation: ${err.response?.data?.detail || err.message}`);
     }
   };
 
   const rejectDoctor = async (doctorId: string) => {
     try {
-      await api.patch(`/admin/medecins/${doctorId}/rejeter`);
+      console.log('Tentative de rejet du médecin:', doctorId);
+      const response = await api.patch(`/admin/medecins/${doctorId}/rejeter`);
+      console.log('Réponse rejet:', response);
       await loadPendingDoctors(); // Recharger la liste
+      setError(''); // Clear any previous errors
     } catch (err: any) {
-      setError('Erreur lors du rejet du médecin');
-      console.error(err);
+      console.error('Erreur rejet:', err);
+      setError(`Erreur lors du rejet: ${err.response?.data?.detail || err.message}`);
     }
   };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-lg text-gray-600">Chargement des médecins en attente...</div>
+        <div className="text-lg text-gray-600 dark:text-gray-300">Chargement des médecins en attente...</div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Validation des médecins en attente
-      </h2>
+    <div className="h-full">
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="mb-4 rounded-lg border border-red-300 bg-red-50 text-red-800 px-4 py-3 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200">
           {error}
         </div>
       )}
 
       {pendingDoctors.length === 0 ? (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          <p className="font-medium">Aucun médecin en attente de validation</p>
-          <p className="text-sm">Tous les médecins inscrits ont été traités.</p>
+        <div className="flex items-center p-4 bg-white rounded-lg shadow w-full min-h-[88px]">
+          <div className="p-3 rounded-full bg-emerald-100 text-emerald-600 mr-4 flex items-center justify-center">
+            <CheckIcon className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-slate-500">Validations</p>
+            <p className="text-2xl font-semibold text-slate-800">0</p>
+          </div>
         </div>
       ) : (
-        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Médecin
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Spécialité
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date d'inscription
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {pendingDoctors.map((doctor) => (
-                <tr key={doctor.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-blue-600 font-medium text-sm">
-                            {doctor.username.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
+        <div className="bg-white rounded-lg shadow w-full overflow-hidden">
+          <div className="px-3 py-2 border-b border-gray-200">
+            <h3 className="text-xs font-medium text-gray-900 flex items-center gap-1 truncate">
+              <StethoscopeIcon className="h-3 w-3 text-blue-600 flex-shrink-0" />
+              Médecins en attente ({pendingDoctors.length})
+            </h3>
+          </div>
+          <div className="max-h-32 overflow-y-auto">
+            {pendingDoctors.map((doctor, index) => (
+              <div key={doctor.id} className="p-2 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-blue-700 font-medium text-xs">
+                        {doctor.username.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-medium text-gray-900 truncate">
+                        Dr. {doctor.username}
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          Dr. {doctor.username}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          ID: {doctor.id}
-                        </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {doctor.email}
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {doctor.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getDepartmentName(doctor.department_id)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(doctor.created_at).toLocaleDateString('fr-FR')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => approveDoctor(doctor.id)}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                      >
-                        ✓ Approuver
-                      </button>
-                      <button
-                        onClick={() => rejectDoctor(doctor.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                      >
-                        ✗ Rejeter
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="flex space-x-1 flex-shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Clic approuver pour:', doctor.id);
+                        approveDoctor(doctor.id);
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-green-500 inline-flex items-center gap-1"
+                      title="Approuver"
+                    >
+                      <CheckIcon className="h-3 w-3" />
+                      <span className="hidden sm:inline">Approuver</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Clic rejeter pour:', doctor.id);
+                        rejectDoctor(doctor.id);
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-red-500 inline-flex items-center gap-1"
+                      title="Rejeter"
+                    >
+                      <XMarkIcon className="h-3 w-3" />
+                      <span className="hidden sm:inline">Rejeter</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      <div className="mt-6 text-sm text-gray-600">
-        <p><strong>Note :</strong> Les médecins approuvés pourront immédiatement accéder à la plateforme et consulter leurs patients assignés.</p>
-        <p>Les médecins rejetés devront contacter l'administration pour plus d'informations.</p>
-      </div>
+      {/* Note supprimée pour affichage compact dans le dashboard */}
     </div>
   );
 }

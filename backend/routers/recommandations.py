@@ -28,7 +28,8 @@ def format_recommendation(doc: dict) -> dict:
     try:
         # Extraire les champs avec des valeurs par défaut
         reco_id = str(doc.get('_id', ''))
-        user_id = str(doc.get('user_id', ''))
+        # Uniformiser: toutes les recommandations référencent le patient via 'patient_id'
+        user_id = str(doc.get('patient_id', ''))
         contenu = doc.get('contenu', '')
         
         # Déterminer le titre
@@ -100,14 +101,25 @@ async def creer_recommandation(reco: dict, current_user=Depends(get_current_user
             reco = reco.dict()
             
         # Préparer le document à insérer
+        patient_id = str(reco.get('patient_id') or reco.get('user_id') or '')
+        if not patient_id:
+            # fallback: certains anciens clients envoient 'user_id' pour le patient
+            patient_id = str(current_user.id)
+
         doc = {
-            "user_id": str(reco.get('user_id', current_user.id)),
+            "patient_id": patient_id,
             "titre": reco.get('titre', 'Nouvelle recommandation'),
             "description": reco.get('description', ''),
             "contenu": reco.get('contenu', ''),
+            "statut": reco.get('statut', 'active'),
+            "priorite": reco.get('priorite', 'moyenne'),
+            "type": reco.get('type', 'generale'),
+            "alerte_id": reco.get('alerte_id'),
             "is_active": True,
+            "date_creation": datetime.utcnow(),
             "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.utcnow(),
+            "medecin_id": str(current_user.id) if current_user.role == Role.medecin else reco.get('medecin_id')
         }
         
         # Insérer le document directement dans MongoDB
@@ -116,6 +128,18 @@ async def creer_recommandation(reco: dict, current_user=Depends(get_current_user
         # Récupérer le document inséré
         inserted_doc = await db.recommandations.find_one({"_id": result.inserted_id})
         
+        # Si une alerte est liée, la marquer comme vue/archivée et inactive
+        try:
+            alerte_id = doc.get('alerte_id')
+            if alerte_id:
+                await db.alertes.update_one(
+                    {"_id": ObjectId(alerte_id)},
+                    {"$set": {"statut": "archivee", "is_active": False, "updated_at": datetime.utcnow()}}
+                )
+        except Exception as e:
+            # Ne pas bloquer la création si l'archivage échoue
+            print(f"Avertissement: impossible d'archiver l'alerte liée {doc.get('alerte_id')}: {e}")
+
         # Retourner le document formaté
         return format_recommendation(inserted_doc)
         
@@ -140,9 +164,9 @@ async def lister_recommandations(current_user=Depends(get_current_user)):
     try:
         # Récupérer les documents bruts
         cursor = db.recommandations.find({
-            "user_id": str(current_user.id), 
+            "patient_id": str(current_user.id),
             "is_active": True
-        })
+        }).sort("date_creation", -1)
         
         # Formater chaque recommandation
         recommendations = []

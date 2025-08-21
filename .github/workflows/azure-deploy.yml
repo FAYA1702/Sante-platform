@@ -1,0 +1,146 @@
+name: Deploy to Azure Container Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to use (e.g., sha or version)'
+        required: false
+        default: ${{ github.sha }}
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'services/**'
+      - 'frontend/**'
+      - '.github/workflows/azure-deploy.yml'
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+  AZURE_CONTAINERAPPS_ENVIRONMENT: ${{ secrets.AZURE_CONTAINERAPPS_ENVIRONMENT }}
+  ACR_NAME: ${{ secrets.ACR_NAME }}
+  IMAGE_TAG: ${{ github.event.inputs.image_tag || github.sha }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Azure Container Registry Login
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            az acr login --name $ACR_NAME
+            echo "Logged into ACR: $ACR_NAME"
+
+      - name: Build and Push Images to ACR
+        run: |
+          REGISTRY=${ACR_NAME}.azurecr.io
+          echo "Using registry: $REGISTRY"
+
+          # Backend
+          docker build -t $REGISTRY/sante-backend:${IMAGE_TAG} ./backend
+          docker push $REGISTRY/sante-backend:${IMAGE_TAG}
+
+          # IA Service
+          docker build -t $REGISTRY/sante-ia-service:${IMAGE_TAG} ./services/ia_service
+          docker push $REGISTRY/sante-ia-service:${IMAGE_TAG}
+
+          # Notification Service
+          docker build -t $REGISTRY/sante-notification-service:${IMAGE_TAG} ./services/notification_service
+          docker push $REGISTRY/sante-notification-service:${IMAGE_TAG}
+
+          # Frontend
+          docker build -t $REGISTRY/sante-frontend:${IMAGE_TAG} ./frontend
+          docker push $REGISTRY/sante-frontend:${IMAGE_TAG}
+
+      - name: Ensure Container Apps Environment exists
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            # Create RG if missing
+            az group create -n "$AZURE_RESOURCE_GROUP" -l "$AZURE_LOCATION"
+
+            # Create Container Apps environment if missing
+            if ! az containerapp env show -n "$AZURE_CONTAINERAPPS_ENVIRONMENT" -g "$AZURE_RESOURCE_GROUP" > /dev/null 2>&1; then
+              az containerapp env create \
+                -n "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+                -g "$AZURE_RESOURCE_GROUP" \
+                -l "$AZURE_LOCATION"
+            fi
+
+      - name: Deploy/Update Container Apps
+        uses: azure/CLI@v2
+        with:
+          inlineScript: |
+            REGISTRY=${ACR_NAME}.azurecr.io
+            IMG_TAG=${IMAGE_TAG}
+
+            # Grant pull permissions from ACR to Container Apps
+            az containerapp registry set \
+              -n sante-backend \
+              -g "$AZURE_RESOURCE_GROUP" \
+              --server $REGISTRY \
+              --username $(az acr credential show -n $ACR_NAME --query username -o tsv) \
+              --password $(az acr credential show -n $ACR_NAME --query passwords[0].value -o tsv) || true
+
+            # Backend
+            az containerapp up \
+              -n sante-backend \
+              -g "$AZURE_RESOURCE_GROUP" \
+              -e "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              -i $REGISTRY/sante-backend:${IMG_TAG} \
+              --ingress external \
+              --target-port 8000 \
+              --env-vars MONGO_URI=${{ secrets.MONGO_URI }} MONGO_DB_NAME=${{ secrets.MONGO_DB_NAME }} REDIS_URL=${{ secrets.REDIS_URL }} DEMO_MODE=true \
+              --runtime-config startupCommand="uvicorn","backend.main:app","--host","0.0.0.0","--port","8000"
+
+            # IA Service
+            az containerapp up \
+              -n sante-ia-service \
+              -g "$AZURE_RESOURCE_GROUP" \
+              -e "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              -i $REGISTRY/sante-ia-service:${IMG_TAG} \
+              --ingress internal \
+              --target-port 8001 \
+              --env-vars MONGO_URI=${{ secrets.MONGO_URI }} MONGO_DB_NAME=${{ secrets.MONGO_DB_NAME }} REDIS_URL=${{ secrets.REDIS_URL }} DEMO_MODE=true \
+              --runtime-config startupCommand="uvicorn","main:aapp","--host","0.0.0.0","--port","8001"
+
+            # Notification Service
+            az containerapp up \
+              -n sante-notification-service \
+              -g "$AZURE_RESOURCE_GROUP" \
+              -e "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              -i $REGISTRY/sante-notification-service:${IMG_TAG} \
+              --ingress internal \
+              --target-port 8002 \
+              --env-vars REDIS_URL=${{ secrets.REDIS_URL }} DEMO_MODE=true \
+              --runtime-config startupCommand="uvicorn","main:app","--host","0.0.0.0","--port","8002"
+
+            # Frontend (exposed)
+            az containerapp up \
+              -n sante-frontend \
+              -g "$AZURE_RESOURCE_GROUP" \
+              -e "$AZURE_CONTAINERAPPS_ENVIRONMENT" \
+              -i $REGISTRY/sante-frontend:${IMG_TAG} \
+              --ingress external \
+              --target-port 80 \
+              --env-vars VITE_API_URL=${{ secrets.FRONTEND_API_URL }}

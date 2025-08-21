@@ -70,30 +70,37 @@ export default function Data() {
 
   useEffect(() => {
     if (role === 'patient' || role === 'medecin' || role === 'admin') {
+      const controller = new AbortController();
       setLoading(true);
       setError(null);
       import('../api').then(({ default: api }) => {
-        api.get('/data')
+        api.get('/data', { signal: controller.signal })
           .then(res => setDonnees(res.data))
-          .catch(e => setError('Erreur lors du chargement des données santé.'))
+          .catch(e => {
+            if (e?.code === 'ERR_CANCELED') return; // ignore annulation
+            setError('Erreur lors du chargement des données santé.');
+          })
           .finally(() => setLoading(false));
       });
+      return () => controller.abort('component unmounted');
     }
   }, [role]);
 
   // Charge les appareils du patient (liste déroulante)
   useEffect(() => {
     if (role === 'patient') {
+      const controller = new AbortController();
       import('../api').then(({ default: api }) => {
-        api.get('/my/devices')
+        api.get('/devices/my/devices', { signal: controller.signal })
           .then(res => {
             setDevices(res.data);
             if (res.data.length === 1) {
               setForm(prev => ({ ...prev, device_id: res.data[0].id }));
             }
           })
-          .catch(() => setError('Erreur lors du chargement des appareils.'));
+          .catch((e) => { if (e?.code !== 'ERR_CANCELED') setError('Erreur lors du chargement des appareils.'); });
       });
+      return () => controller.abort('component unmounted');
     }
   }, [role]);
 
@@ -150,9 +157,10 @@ export default function Data() {
           // Recharge la liste
           setLoading(true);
           import('../api').then(({ default: api }) => {
-            api.get('/data')
+            const controller = new AbortController();
+            api.get('/data', { signal: controller.signal })
               .then(res => setDonnees(res.data))
-              .catch(e => setError('Erreur lors du chargement des données santé.'))
+              .catch(e => { if (e?.code !== 'ERR_CANCELED') setError('Erreur lors du chargement des données santé.'); })
               .finally(() => setLoading(false));
           });
         })
@@ -209,37 +217,37 @@ export default function Data() {
   </p>
 )}
       {role === 'medecin' && (
-        <div className="mb-4 flex flex-wrap gap-4 items-end bg-gray-50 border rounded p-4">
+        <div className="mb-4 flex flex-wrap gap-4 items-end bg-gray-50 border-2 border-gray-400 rounded-lg p-6 shadow-lg">
           <div>
-            <label className="block text-xs font-semibold mb-1">Patient</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Patient</label>
             {patients.length > 0 ? (
-              <select value={filters.patient} onChange={e=>{setFilters({...filters, patient:e.target.value}); setPage(1);}} className="border px-2 py-1 rounded w-56">
+              <select value={filters.patient} onChange={e=>{setFilters({...filters, patient:e.target.value}); setPage(1);}} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 w-56 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Tous</option>
                 {patients.map((p:any) => (
                   <option key={p.id} value={p.username}>{p.username}</option>
                 ))}
               </select>
             ) : (
-              <input type="text" value={filters.patient} onChange={e=>{setFilters({...filters, patient:e.target.value}); setPage(1);}} className="border px-2 py-1 rounded w-56" placeholder="Nom patient" />
+              <input type="text" value={filters.patient} onChange={e=>{setFilters({...filters, patient:e.target.value}); setPage(1);}} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 w-56 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nom patient" />
             )}
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Du</label>
-            <input type="date" value={filters.start} onChange={e=>{setFilters({...filters, start:e.target.value}); setPage(1);}} className="border px-2 py-1 rounded" />
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Du</label>
+            <input type="date" value={filters.start} onChange={e=>{setFilters({...filters, start:e.target.value}); setPage(1);}} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Au</label>
-            <input type="date" value={filters.end} onChange={e=>{setFilters({...filters, end:e.target.value}); setPage(1);}} className="border px-2 py-1 rounded" />
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Au</label>
+            <input type="date" value={filters.end} onChange={e=>{setFilters({...filters, end:e.target.value}); setPage(1);}} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
         </div>
       )}
       {(role === 'patient' || role === 'medecin' || role === 'admin') && (
-        <form onSubmit={handleSubmit} className="mb-6 bg-gray-50 border rounded p-4 flex flex-wrap gap-4 items-end">
+        <form onSubmit={handleSubmit} className="mb-6 bg-gray-50 border-2 border-gray-400 rounded-lg p-6 shadow-lg flex flex-wrap gap-4 items-end">
           <div>
-            <label className="block text-xs font-semibold mb-1">Appareil</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Appareil</label>
             {role === 'patient' ? (
               devices.length > 0 ? (
-                <select name="device_id" required value={form.device_id} onChange={e => setForm({ ...form, device_id: e.target.value })} className="border px-2 py-1 rounded w-40">
+                <select name="device_id" required value={form.device_id} onChange={e => setForm({ ...form, device_id: e.target.value })} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 w-40 focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="" disabled>Sélectionner</option>
                   {devices.map((d:any) => (
                     <option key={d.id} value={d.id}>{d.type} · {d.numero_serie}</option>
@@ -249,24 +257,24 @@ export default function Data() {
                 <span className="text-red-600 text-sm">Aucun appareil enregistré</span>
               )
             ) : (
-              <input name="device_id" type="text" required value={form.device_id} onChange={handleChange} className="border px-2 py-1 rounded w-32" />
+              <input name="device_id" type="text" required value={form.device_id} onChange={handleChange} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 w-32 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             )}
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Fréquence cardiaque (bpm)</label>
-            <input name="frequence_cardiaque" type="number" min="0" value={form.frequence_cardiaque} onChange={handleChange} className="border px-2 py-1 rounded w-32" />
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Fréquence cardiaque (bpm)</label>
+            <input name="frequence_cardiaque" type="number" min="0" value={form.frequence_cardiaque} onChange={handleChange} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 w-32 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Pression artérielle</label>
-            <input name="pression_arterielle" type="text" placeholder="120/80" value={form.pression_arterielle} onChange={handleChange} className="border px-2 py-1 rounded w-24" />
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Pression artérielle</label>
+            <input name="pression_arterielle" type="text" placeholder="120/80" value={form.pression_arterielle} onChange={handleChange} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 w-24 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Taux O₂ (%)</label>
-            <input name="taux_oxygene" type="number" min="0" max="100" value={form.taux_oxygene} onChange={handleChange} className="border px-2 py-1 rounded w-20" />
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Taux O₂ (%)</label>
+            <input name="taux_oxygene" type="number" min="0" max="100" value={form.taux_oxygene} onChange={handleChange} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 w-20 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Source</label>
-            <select name="source" value={form.source || 'saisie_manuelle'} onChange={handleChange} className="border px-2 py-1 rounded w-40">
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Source</label>
+            <select name="source" value={form.source || 'saisie_manuelle'} onChange={handleChange} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 w-40 focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="saisie_manuelle">Saisie manuelle</option>
               <option value="appareil_connecte">Appareil connecté</option>
               <option value="import_fichier">Import fichier</option>
@@ -274,8 +282,8 @@ export default function Data() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Date</label>
-            <input name="date" type="datetime-local" required value={form.date} onChange={handleChange} className="border px-2 py-1 rounded w-52" />
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Date</label>
+            <input name="date" type="datetime-local" required value={form.date} onChange={handleChange} className="bg-white text-gray-900 placeholder-gray-500 border-2 border-gray-600 rounded px-3 py-2 w-52 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <button type="submit" disabled={sending} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">{sending ? 'Ajout...' : 'Ajouter'}</button>
           {formError && <div className="text-red-700 ml-2">{formError}</div>}
@@ -288,32 +296,24 @@ export default function Data() {
         <div className="text-gray-500">Aucune donnée de santé trouvée.</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full border mt-4">
+          <table className="min-w-full border-2 border-gray-400 mt-4 bg-white shadow-lg rounded-lg overflow-hidden">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="px-4 py-2">Date</th>
-                <th className="px-4 py-2">Appareil</th>
-                <th className="px-4 py-2">Fréquence cardiaque</th>
-                <th className="px-4 py-2">Pression artérielle</th>
-                <th className="px-4 py-2">Taux O₂</th>
-                <th className="px-4 py-2">Provenance</th>
+              <tr className="bg-gray-200 border-b-2 border-gray-400">
+                <th className="px-4 py-3 text-left font-semibold text-gray-800 border-r border-gray-300">Date</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-800 border-r border-gray-300">Appareil</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-800 border-r border-gray-300">Fréquence cardiaque</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-800 border-r border-gray-300">Pression artérielle</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-800">Taux O₂</th>
               </tr>
             </thead>
             <tbody>
               {paginated.map((d, i) => (
-                <tr key={d.id || i} className="border-b">
-                  <td className="px-4 py-2">{new Date(d.date).toLocaleString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{d.device_nom || d.device_id}</td>
-                  <td className={d.frequence_cardiaque > FC_MAX ? 'text-red-600 font-semibold' : ''}>{d.frequence_cardiaque}</td>
-                  <td className="px-4 py-2">{d.pression_arterielle ?? '-'}</td>
-                  <td className={d.taux_oxygene < SPO2_MIN ? 'text-red-600 font-semibold' : ''}>{d.taux_oxygene}</td>
-                  <td className="px-4 py-2">
-                    {d.source === 'saisie_manuelle' ? 'Saisie manuelle' :
-                     d.source === 'appareil_connecte' ? 'Appareil connecté' :
-                     d.source === 'import_fichier' ? 'Import fichier' :
-                     d.source === 'api_externe' ? 'API externe' :
-                     d.source || '-'}
-                  </td>
+                <tr key={d.id || i} className={`border-b border-gray-300 ${i % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-blue-50`}>
+                  <td className="px-4 py-3 text-gray-900 border-r border-gray-200">{new Date(d.date).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-gray-900 border-r border-gray-200">{d.device_nom || d.device_id}</td>
+                  <td className={`px-4 py-3 border-r border-gray-200 ${d.frequence_cardiaque > FC_MAX ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-900'}`}>{d.frequence_cardiaque}</td>
+                  <td className="px-4 py-3 text-gray-900 border-r border-gray-200">{d.pression_arterielle ?? '-'}</td>
+                  <td className={`px-4 py-3 ${d.taux_oxygene < SPO2_MIN ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-900'}`}>{d.taux_oxygene}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,5 +1,6 @@
 """Routes liées à la gestion des utilisateurs et des rôles (RBAC)."""
 
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from beanie import PydanticObjectId
 
@@ -9,7 +10,7 @@ from backend.models import Department
 from backend.schemas.utilisateur import UtilisateurPublic
 from backend.schemas.role_update import RoleUpdate
 
-router = APIRouter(prefix="/users", tags=["utilisateurs"])  # noqa: E305
+router = APIRouter(prefix="/users", tags=["users"])  # noqa: E305
 
 
 async def enrichir_utilisateur_avec_departement(user: Utilisateur) -> UtilisateurPublic:
@@ -55,7 +56,7 @@ async def enrichir_utilisateur_avec_departement(user: Utilisateur) -> Utilisateu
 # Routes ADMIN – CRUD complet des utilisateurs
 # ---------------------------------------------------------------------------
 
-@router.get("/", response_model=list[UtilisateurPublic], dependencies=[Depends(verifier_roles([Role.admin]))])
+@router.get("/", response_model=List[UtilisateurPublic], dependencies=[Depends(verifier_roles([Role.admin]))])
 async def lister_utilisateurs(skip: int = 0, limit: int = 20, q: str | None = None):
     """Liste des utilisateurs avec pagination et recherche (admin).
 
@@ -145,12 +146,23 @@ async def supprimer_utilisateur(user_id: PydanticObjectId):
 # Routes spécifiques existantes
 # ---------------------------------------------------------------------------
 
-@router.get("/patients", response_model=list[UtilisateurPublic],
-            dependencies=[Depends(verifier_roles([Role.medecin, Role.admin]))])
-async def lister_patients():
-    """Retourne la liste des utilisateurs ayant le rôle patient (pour les médecins/admin)."""
-    patients = await Utilisateur.find({"role": Role.patient}).to_list()
-    return [UtilisateurPublic(id=str(u.id), email=u.email, username=u.username, role=u.role) for u in patients]
+@router.get("/patients", response_model=List[UtilisateurPublic])
+async def lister_patients(current_user=Depends(get_current_user)):
+    """Retourne la liste des patients selon le rôle de l'utilisateur."""
+    if current_user.role == "medecin":
+        # Médecin voit seulement ses patients assignés
+        user_id = str(current_user.id)
+        patients = await Utilisateur.find({
+            "role": "patient",
+            "medecin_assigne": user_id
+        }).to_list()
+        return [UtilisateurPublic(id=str(u.id), email=u.email, username=u.username, role=u.role) for u in patients]
+    elif current_user.role == "admin" or current_user.role == "technicien":
+        # Admin et Technicien voient tous les patients
+        patients = await Utilisateur.find({"role": "patient"}).to_list()
+        return [UtilisateurPublic(id=str(u.id), email=u.email, username=u.username, role=u.role) for u in patients]
+    else:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
 
 
 @router.get("/me", response_model=UtilisateurPublic)

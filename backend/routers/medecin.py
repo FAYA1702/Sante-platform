@@ -19,7 +19,7 @@ async def get_medecin_patients(current_user=Depends(get_current_user)):
     if current_user.role != Role.medecin:
         raise HTTPException(status_code=403, detail="Accès réservé aux médecins")
     
-    # Récupérer les patients assignés à ce médecin
+    # Récupérer les patients assignés à ce médecin (ségrégation RBAC)
     medecin_id_str = str(current_user.id)
     
     # Requête MongoDB directe pour éviter les problèmes avec Beanie
@@ -49,7 +49,7 @@ async def get_medecin_patients(current_user=Depends(get_current_user)):
 
 @router.get("/alertes")
 async def get_medecin_alertes(
-    statut: str = "nouvelle",
+    statut: str = None,  # Permettre de voir toutes les alertes par défaut
     patient_id: str = None,
     current_user=Depends(get_current_user)
 ):
@@ -83,22 +83,38 @@ async def get_medecin_alertes(
             raise HTTPException(status_code=403, detail="Patient non assigné à ce médecin")
         patient_ids = [patient_id]
     
-    # Récupérer les alertes des patients avec le statut demandé
-    alertes_cursor = db.alertes.find({
+    # Construire la requête avec ou sans filtre de statut
+    # Inclure les alertes actives ou sans champ is_active (anciens documents)
+    query = {
         "user_id": {"$in": patient_ids},
-        "statut": statut
-    }).sort("date", -1)
+        "$or": [
+            {"is_active": True},
+            {"is_active": {"$exists": False}}
+        ]
+    }
+    if statut:
+        query["statut"] = statut
+    
+    # Récupérer les alertes des patients
+    alertes_cursor = db.alertes.find(query).sort("date", -1)
     alertes_docs = await alertes_cursor.to_list(None)
     
+    print(f"[DEBUG] Médecin {current_user.username} - Patients: {len(patient_ids)}, Alertes trouvées: {len(alertes_docs)}")
+    
+    def _fmt_date(value):
+        if not value:
+            return None
+        return value if isinstance(value, str) else getattr(value, "isoformat", lambda: str(value))()
+
     return [
         {
-            "id": str(doc["_id"]),
-            "user_id": doc["user_id"],
-            "message": doc["message"],
-            "niveau": doc["niveau"],
-            "date": doc["date"] if isinstance(doc["date"], str) else doc["date"].isoformat(),
-            "statut": doc["statut"],
-            "patient_nom": patient_map.get(doc["user_id"], "Patient inconnu")
+            "id": str(doc.get("_id")),
+            "user_id": doc.get("user_id", ""),
+            "message": doc.get("message", ""),
+            "niveau": doc.get("niveau", "info"),
+            "date": _fmt_date(doc.get("date")),
+            "statut": doc.get("statut", "nouvelle"),
+            "patient_nom": patient_map.get(doc.get("user_id", ""), "Patient inconnu"),
         }
         for doc in alertes_docs
     ]
@@ -106,7 +122,7 @@ async def get_medecin_alertes(
 
 @router.get("/recommandations")
 async def get_medecin_recommandations(
-    statut: str = "nouvelle",
+    statut: str | None = None,
     patient_id: str = None,
     current_user=Depends(get_current_user)
 ):
@@ -143,26 +159,29 @@ async def get_medecin_recommandations(
             raise HTTPException(status_code=403, detail="Patient non assigné à ce médecin")
         patient_ids = [patient_id]
     
-    # Récupérer les recommandations des patients avec le statut demandé
+    # Récupérer les recommandations des patients avec filtre de statut optionnel
+    # Uniformiser: les recommandations référencent le patient via 'patient_id'
     query = {
-        "user_id": {"$in": patient_ids},
-        "statut": statut
+        "patient_id": {"$in": patient_ids}
     }
+    if statut:
+        query["statut"] = statut
     print(f"[DEBUG] Requête recommandations: {query}")
     
-    recos_cursor = db.recommandations.find(query).sort("date", -1)
+    recos_cursor = db.recommandations.find(query).sort("date_creation", -1)
     recos_docs = await recos_cursor.to_list(None)
     print(f"[DEBUG] Recommandations trouvées: {len(recos_docs)}")
     
     return [
         {
             "id": str(doc["_id"]),
-            "user_id": doc["user_id"],
+            # pour compatibilité frontend, renvoyer user_id en tant que patient_id
+            "user_id": doc.get("patient_id", doc.get("user_id", "")),
             "titre": doc.get("titre", "Recommandation de santé"),
             "description": doc.get("description", "Aucune description disponible"),
-            "date": doc["date"] if isinstance(doc["date"], str) else doc["date"].isoformat(),
-            "statut": doc["statut"],
-            "patient_nom": patient_map.get(doc["user_id"], "Patient inconnu")
+            "date": (doc.get("date_creation") or doc.get("date")).isoformat() if hasattr((doc.get("date_creation") or doc.get("date")), "isoformat") else str(doc.get("date_creation") or doc.get("date")),
+            "statut": doc.get("statut", "active"),
+            "patient_nom": patient_map.get(doc.get("patient_id", doc.get("user_id", "")), "Patient inconnu")
         }
         for doc in recos_docs
     ]
@@ -207,23 +226,29 @@ async def marquer_recommandation_vue(reco_id: str, current_user=Depends(get_curr
     
     from bson import ObjectId
     try:
-        reco = await Recommandation.find_one(Recommandation.id == ObjectId(reco_id))
-        if not reco:
+        # Récupérer via Mongo direct pour supporter patient_id
+        from backend.db import get_client, MONGO_DB_NAME
+        client = get_client()
+        db = client[MONGO_DB_NAME]
+        doc = await db.recommandations.find_one({"_id": ObjectId(reco_id)})
+        if not doc:
             raise HTTPException(status_code=404, detail="Recommandation introuvable")
-        
+
+        patient_id = doc.get("patient_id") or doc.get("user_id")
+        if not patient_id:
+            raise HTTPException(status_code=400, detail="Recommandation invalide: patient manquant")
+
         # Vérifier que le patient appartient au médecin
-        patient = await Utilisateur.find_one(Utilisateur.id == ObjectId(reco.user_id))
+        patient = await Utilisateur.find_one(Utilisateur.id == ObjectId(patient_id))
         if not patient or str(current_user.id) not in patient.medecin_ids:
             raise HTTPException(status_code=403, detail="Patient non assigné à ce médecin")
-        
+
         # Marquer comme vue
-        reco.statut = "vue"
-        reco.vue_par = str(current_user.id)
-        reco.date_vue = datetime.utcnow()
-        reco.updated_at = datetime.utcnow()
-        
-        await reco.save()
-        
+        await db.recommandations.update_one(
+            {"_id": ObjectId(reco_id)},
+            {"$set": {"statut": "vue", "vue_par": str(current_user.id), "date_vue": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+        )
+
         return {"message": "Recommandation marquée comme vue"}
         
     except Exception as e:
@@ -276,7 +301,7 @@ async def creer_recommandation(
     
     try:
         # Vérifier que le patient appartient au médecin
-        patient_id = payload.get("user_id")
+        patient_id = payload.get("patient_id") or payload.get("user_id")
         if not patient_id:
             raise HTTPException(status_code=400, detail="ID patient requis")
         
@@ -285,28 +310,49 @@ async def creer_recommandation(
         if not patient or str(current_user.id) not in patient.medecin_ids:
             raise HTTPException(status_code=403, detail="Patient non assigné à ce médecin")
         
-        # Créer la recommandation
-        recommandation = Recommandation(
-            user_id=patient_id,
-            titre=payload.get("titre", "Recommandation médicale"),
-            description=payload.get("description", ""),
-            statut="nouvelle",
-            created_by=str(current_user.id),
-            date=datetime.utcnow()
-        )
-        
-        await recommandation.insert()
-        
+        # Créer la recommandation (Mongo direct pour champs supplémentaires)
+        from backend.db import get_client, MONGO_DB_NAME
+        client = get_client()
+        db = client[MONGO_DB_NAME]
+        doc = {
+            "patient_id": patient_id,
+            "titre": payload.get("titre", "Recommandation médicale"),
+            "description": payload.get("description", ""),
+            "statut": "active",
+            "priorite": payload.get("priorite", "moyenne"),
+            "type": payload.get("type", "generale"),
+            "alerte_id": payload.get("alerte_id"),
+            "medecin_id": str(current_user.id),
+            "date_creation": datetime.utcnow(),
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "vue_patient": False,
+            "is_active": True,
+        }
+        result = await db.recommandations.insert_one(doc)
+
+        # Archiver l'alerte liée si présente
+        try:
+            if doc.get("alerte_id"):
+                from bson import ObjectId as _ObjectId
+                await db.alertes.update_one(
+                    {"_id": _ObjectId(doc["alerte_id"])},
+                    {"$set": {"statut": "archivee", "is_active": False, "updated_at": datetime.utcnow()}}
+                )
+        except Exception as e:
+            print(f"[WARN] Impossible d'archiver l'alerte liée {doc.get('alerte_id')}: {e}")
+
+        inserted = await db.recommandations.find_one({"_id": result.inserted_id})
         return {
-            "id": str(recommandation.id),
+            "id": str(inserted["_id"]),
             "message": "Recommandation créée avec succès",
             "recommandation": {
-                "id": str(recommandation.id),
-                "user_id": recommandation.user_id,
-                "titre": recommandation.titre,
-                "description": recommandation.description,
-                "statut": recommandation.statut,
-                "date": recommandation.date.isoformat()
+                "id": str(inserted["_id"]),
+                "user_id": inserted.get("patient_id"),
+                "titre": inserted.get("titre"),
+                "description": inserted.get("description"),
+                "statut": inserted.get("statut", "active"),
+                "date": inserted.get("date_creation").isoformat() if hasattr(inserted.get("date_creation"), "isoformat") else str(inserted.get("date_creation"))
             }
         }
         

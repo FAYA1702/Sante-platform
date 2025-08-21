@@ -52,18 +52,46 @@ const MedecinDashboard: React.FC = () => {
       
       const patientsResponse = await api.get('/medecin/patients');
       setPatients(patientsResponse.data);
+      // Auto-sélectionner le premier patient si aucun n'est sélectionné
+      if (!selectedPatient && Array.isArray(patientsResponse.data) && patientsResponse.data.length > 0) {
+        setSelectedPatient(patientsResponse.data[0].id);
+      }
+      console.debug('[MedecinDashboard] patients =>', patientsResponse.data);
 
-      const alertesResponse = await api.get('/medecin/alertes?statut=nouvelle');
-      setAlertes(alertesResponse.data);
+      // Récupérer TOUTES les alertes (pas seulement les nouvelles)
+      const alertesResponse = await api.get('/medecin/alertes');
+      const rawAlertes = Array.isArray(alertesResponse.data) ? alertesResponse.data : [];
+      const normalizedAlertes = rawAlertes.map((a: any) => ({
+        ...a,
+        // uniformiser l'id patient et le statut/niveau
+        user_id: a.user_id ?? a.patient_id ?? a.userId ?? a.patientId,
+        statut: (a.statut || '').toLowerCase(),
+        niveau: (a.niveau || '').toLowerCase(),
+      }));
+      setAlertes(normalizedAlertes);
+      console.debug('[MedecinDashboard] alertes =>', normalizedAlertes);
 
-      const recosResponse = await api.get('/medecin/recommandations?statut=nouvelle');
-      setRecommandations(recosResponse.data);
+      const recosResponse = await api.get('/medecin/recommandations');
+      const rawRecos = Array.isArray(recosResponse.data) ? recosResponse.data : [];
+      const normalizedRecos = rawRecos.map((r: any) => ({
+        ...r,
+        user_id: r.user_id ?? r.patient_id ?? r.userId ?? r.patientId,
+        statut: (r.statut || '').toLowerCase(),
+      }));
+      setRecommandations(normalizedRecos);
+      console.debug('[MedecinDashboard] recommandations =>', normalizedRecos);
 
     } catch (error) {
       console.error('Erreur lors du chargement des données médecin:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper: une reco est considérée "nouvelle" si statut = active/nouvelle, ou is_active=true, ou statut absent
+  const isNewReco = (r: Partial<Recommandation> & { is_active?: boolean }) => {
+    const s = (r.statut || '').toLowerCase();
+    return r.is_active === true || s === 'active' || s === 'nouvelle' || !r.statut;
   };
 
   const marquerVue = async (type: 'alerte' | 'recommandation', id: string) => {
@@ -101,7 +129,7 @@ const MedecinDashboard: React.FC = () => {
   }
 
   // Handler création reco
-  const handleCreateReco = async (values: { user_id: string; titre: string; description: string }) => {
+  const handleCreateReco = async (values: { patient_id: string; titre: string; description: string; alerte_id?: string }) => {
     try {
       await api.post('/medecin/recommandations', values);
       setShowRecoModal(false);
@@ -159,12 +187,10 @@ const MedecinDashboard: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white/70 dark:bg-gray-900/60 rounded-xl shadow ring-1 ring-sky-100 dark:ring-sky-900 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              <i className="bi bi-people text-blue-600 dark:text-blue-400 text-xl"></i>
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Patients Suivis</p>
@@ -174,46 +200,40 @@ const MedecinDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white/70 dark:bg-gray-900/60 rounded-xl shadow ring-1 ring-sky-100 dark:ring-sky-900 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
-              <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 18.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
+              <i className="bi bi-bell text-red-600 dark:text-red-400 text-xl"></i>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">🚨 Alertes IA</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{filteredAlertes.filter(a => a.statut === 'nouvelle').length}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Alertes IA</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{filteredAlertes.filter(a => ['nouvelle','nouveau','new'].includes((a.statut || '').toLowerCase())).length}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Nouvelles détections</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white/70 dark:bg-gray-900/60 rounded-xl shadow ring-1 ring-sky-100 dark:ring-sky-900 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
+              <i className="bi bi-robot text-green-600 dark:text-green-400 text-xl"></i>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">🤖 Recommandations IA</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{filteredRecommandations.filter(r => r.statut === 'nouvelle').length}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Recommandations IA</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{filteredRecommandations.filter(r => ['active','nouvelle'].includes((r.statut || '').toLowerCase())).length}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Suggestions automatiques</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white/70 dark:bg-gray-900/60 rounded-xl shadow ring-1 ring-sky-100 dark:ring-sky-900 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-              <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 18.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
+              <i className="bi bi-exclamation-octagon text-yellow-600 dark:text-yellow-400 text-xl"></i>
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">⚠️ Urgences</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{filteredAlertes.filter(a => a.niveau === 'critique').length}</p>
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{filteredAlertes.filter(a => ['critique','critical'].includes((a.niveau || '').toLowerCase())).length}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Intervention requise</p>
             </div>
           </div>
@@ -223,13 +243,11 @@ const MedecinDashboard: React.FC = () => {
       {/* Alertes et Recommandations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Alertes */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-white/70 dark:bg-gray-900/60 rounded-xl shadow ring-1 ring-sky-100 dark:ring-sky-900">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-              <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 18.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              🚨 Alertes de Télésurveillance ({filteredAlertes.filter(a => a.statut === 'nouvelle').length})
+              <i className="bi bi-bell-fill text-red-500 mr-2"></i>
+              🚨 Alertes de Télésurveillance ({filteredAlertes.filter(a => ['nouvelle','nouveau','new'].includes((a.statut || '').toLowerCase())).length})
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Détections automatiques IA sur les paramètres vitaux
@@ -237,9 +255,10 @@ const MedecinDashboard: React.FC = () => {
           </div>
           <div className="p-6 max-h-96 overflow-y-auto">
             {filteredAlertes.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                Aucune alerte nouvelle
-              </p>
+              <div className="text-gray-500 dark:text-gray-400 text-center py-8 space-y-2">
+                <p>Aucune alerte nouvelle</p>
+                <p className="text-xs">Astuce: vérifiez que des patients vous sont assignés et que l'API renvoie des alertes pour ces patients.</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {filteredAlertes.map(alerte => (
@@ -254,16 +273,15 @@ const MedecinDashboard: React.FC = () => {
                       if (alerte.statut === 'nouvelle') {
                         marquerVue('alerte', alerte.id);
                       }
-                      navigate(`/patients/${alerte.user_id}`);
                     }}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        alerte.niveau === 'critical' 
+                        ['critique','critical'].includes((alerte.niveau || '').toLowerCase())
                           ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                       }`}>
-                        {alerte.niveau === 'critical' ? 'Critique' : 'Attention'}
+                        {['critique','critical'].includes((alerte.niveau || '').toLowerCase()) ? 'Critique' : 'Attention'}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
                         {new Date(alerte.date).toLocaleDateString('fr-FR')}
@@ -276,11 +294,25 @@ const MedecinDashboard: React.FC = () => {
                       {alerte.message}
                     </p>
                     {alerte.statut === 'nouvelle' && (
-                      <div className="mt-2">
+                      <div className="mt-3 flex gap-2">
                         <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full">
                           <span className="w-2 h-2 bg-blue-400 rounded-full mr-1 animate-pulse"></span>
                           Nouvelle
                         </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const patient = patients.find(p => p.id === alerte.user_id);
+                            if (patient) {
+                              setModalPatient(patient);
+                              setModalAlerte(alerte);
+                              setShowRecoModal(true);
+                            }
+                          }}
+                          className="inline-flex items-center px-3 py-1 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                        >
+                          ✚ Créer recommandation
+                        </button>
                       </div>
                     )}
                   </div>
@@ -291,13 +323,11 @@ const MedecinDashboard: React.FC = () => {
         </div>
 
         {/* Recommandations */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-white/70 dark:bg-gray-900/60 rounded-xl shadow ring-1 ring-sky-100 dark:ring-sky-900 p-6">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-              <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              🤖 Recommandations IA ({filteredRecommandations.filter(r => r.statut === 'nouvelle').length})
+              <i className="bi bi-lightbulb-fill text-green-500 mr-2"></i>
+              🤖 Recommandations IA ({filteredRecommandations.filter(r => ['active','nouvelle'].includes((r.statut || '').toLowerCase())).length})
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Suggestions diagnostiques générées automatiquement
@@ -314,12 +344,12 @@ const MedecinDashboard: React.FC = () => {
                   <div
                     key={reco.id}
                     className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                      reco.statut === 'nouvelle' 
+                      ['active','nouvelle'].includes((reco.statut || '').toLowerCase()) 
                         ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800' 
                         : 'border-gray-200 bg-gray-50 dark:bg-gray-700 dark:border-gray-600'
                     }`}
                     onClick={() => {
-                      if (reco.statut === 'nouvelle') {
+                      if (['active','nouvelle'].includes((reco.statut || '').toLowerCase())) {
                         marquerVue('recommandation', reco.id);
                       }
                       navigate(`/patients/${reco.user_id}`);
@@ -339,7 +369,7 @@ const MedecinDashboard: React.FC = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-300">
                       {reco.description}
                     </p>
-                    {reco.statut === 'nouvelle' && (
+                    {['active','nouvelle'].includes((reco.statut || '').toLowerCase()) && (
                       <div className="mt-2">
                         <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full">
                           <span className="w-2 h-2 bg-blue-400 rounded-full mr-1 animate-pulse"></span>
@@ -355,64 +385,7 @@ const MedecinDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Alertes IA */}
-      <div className="mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-              <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 11-12.728 0M12 3v9" />
-              </svg>
-              Alertes IA récentes
-            </h2>
-          </div>
-          <div className="p-6">
-            {filteredAlertes.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                Aucune alerte récente
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {filteredAlertes.map(alerte => (
-                  <div
-                    key={alerte.id}
-                    className="p-4 border border-red-200 dark:border-red-600 rounded-lg bg-red-50 dark:bg-red-900/30 flex flex-col md:flex-row md:items-center md:justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center mb-1">
-                        <span className={`inline-flex items-center px-2 py-1 text-xs rounded-full mr-2 ${alerte.niveau === 'critical' ? 'bg-red-500 text-white' : 'bg-yellow-200 text-yellow-800'}`}>
-                          {alerte.niveau === 'critical' ? 'Critique' : 'Alerte'}
-                        </span>
-                        <span className="font-medium text-gray-800 dark:text-white">{alerte.message}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-300">{alerte.patient_nom || ''} • {new Date(alerte.date).toLocaleString()}</p>
-                    </div>
-                    <div className="mt-3 md:mt-0 md:ml-6 flex items-center gap-2">
-                      <button
-                        className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
-                        onClick={() => {
-                          const patient = patients.find(p => p.id === alerte.user_id);
-                          setModalPatient(patient);
-                          setModalAlerte(alerte);
-                          setShowRecoModal(true);
-                        }}
-                      >
-                        Créer une recommandation
-                      </button>
-                      <button
-                        className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs"
-                        onClick={() => marquerVue('alerte', alerte.id)}
-                      >
-                        Marquer comme vue
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      
     </div>
   );
 };

@@ -11,7 +11,9 @@ import Devices from './pages/Devices';
 import Users from './pages/Users';
 import PatientPage from './pages/PatientPage';
 import MedecinDashboard from './pages/MedecinDashboard';
-import Assignations from './pages/Assignations';
+import TechnicienAssignations from './pages/TechnicienAssignations';
+import PatientProfile from './pages/PatientProfile';
+// import Recommendations from './pages/Recommendations'; // Fichier supprimé
 
 // Lecture du mode (demo | production)
 const IS_DEMO = import.meta.env.VITE_APP_MODE === 'demo';
@@ -32,10 +34,23 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({
 }) => {
   const location = useLocation();
   const token = localStorage.getItem('token');
-  if (!token) return <Navigate to="/auth" state={{ from: location }} replace />;
+  
+  // Vider le localStorage si token invalide après nettoyage DB
+  if (!token) {
+    localStorage.clear();
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+  
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const role = payload.role as string;
+    const userId = payload.sub || payload.user_id;
+
+    // Vérifier si le token est encore valide (utilisateur existe)
+    if (!userId) {
+      localStorage.clear();
+      return <Navigate to="/auth" state={{ from: location }} replace />;
+    }
 
     // En mode démo, l'admin a tous les droits
     if (IS_DEMO && role === 'admin') return children;
@@ -45,6 +60,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({
     return children;
   } catch (err) {
     console.error('Token JWT invalide', err);
+    localStorage.clear();
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 };
@@ -66,6 +82,13 @@ export default function App() {
   return (
     <Routes>
       <Route path="/auth" element={<LoginRegister />} />
+      <Route path="/users" element={<Users />} />
+      <Route path="/data" element={<Data />} />
+      <Route path="/devices" element={<Devices />} />
+      {/* <Route path="/assignments" element={<Assignations />} /> */}
+      {/* <Route path="/recommendations" element={<Recommendations />} /> */}
+      <Route path="/medecin" element={<MedecinDashboard />} />
+      <Route path="/profile" element={<PatientProfile />} />
       <Route
         path="/"
         element={
@@ -75,6 +98,7 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route
           path="medecin"
           element={
@@ -108,14 +132,11 @@ export default function App() {
           }
         />
         <Route path="patients/:id" element={<PatientPage />} />
-        <Route
-          path="assignations"
-          element={
-            <PrivateRoute allowedRoles={['patient', 'medecin']}>
-              <Assignations />
-            </PrivateRoute>
-          }
-        />
+        <Route path="/assignations" element={
+              <PrivateRoute allowedRoles={['technicien']}>
+                <TechnicienAssignations />
+              </PrivateRoute>
+            } />
       </Route>
     </Routes>
   );

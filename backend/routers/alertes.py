@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 
 from backend.dependencies.auth import get_current_user
+from backend.db import get_client, MONGO_DB_NAME
 
 
 from backend.models.alerte import Alerte
@@ -27,10 +28,12 @@ async def stream_alertes():
         redis_client = None
         try:
             # Connexion Redis pour écouter les nouvelles alertes
-            redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+            # Par défaut, utiliser le service Docker 'redis' (et non localhost dans le conteneur)
+            redis_url = os.getenv('REDIS_URL', 'redis://redis:6379')
             redis_client = redis.from_url(redis_url)
             
-            # Envoyer un heartbeat initial
+            # Annoncer un délai de reconnexion par défaut (10s) et envoyer un heartbeat initial
+            yield "retry: 10000\n"
             yield "data: {\"type\": \"heartbeat\", \"timestamp\": \"" + str(asyncio.get_event_loop().time()) + "\"}\n\n"
             
             # S'abonner au canal Redis pour les nouvelles alertes
@@ -103,6 +106,8 @@ async def stream_alertes():
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
+            # Désactiver le buffering côté proxy (nginx) si présent
+            "X-Accel-Buffering": "no",
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "Cache-Control"
         }
@@ -111,14 +116,41 @@ async def stream_alertes():
 
 @router.get("/alerts", response_model=List[AlerteEnDB])
 async def lister_alertes(current_user=Depends(get_current_user)):
-    """Liste les alertes de l'utilisateur connecté uniquement (sécurité RGPD)."""
-    # Filtrer par user_id pour respecter la ségrégation des données
-    alertes_docs = await Alerte.find({"user_id": str(current_user.id)}).to_list()
+    """Liste les alertes actives du patient connecté (compat user_id/patient_id, legacy).
+
+    Règles d'activité:
+    - is_active == True
+    - OU (is_active absent ET (archivee False OU archivee absent))
+    """
+    patient_id = str(current_user.id)
+
+    filtre = {
+        "$and": [
+            {"$or": [
+                {"user_id": patient_id},
+                {"patient_id": patient_id},
+            ]},
+            {"$or": [
+                {"is_active": True},
+                {"$and": [
+                    {"is_active": {"$exists": False}},
+                    {"$or": [
+                        {"archivee": False},
+                        {"archivee": {"$exists": False}},
+                    ]}
+                ]}
+            ]}
+        ]
+    }
+
+    # Utiliser Beanie avec un filtre brut pour conserver les modèles
+    alertes_docs = await Alerte.find(filtre).to_list()
+
     return [AlerteEnDB(
-        id=str(a.id), 
-        user_id=a.user_id, 
-        message=a.message, 
-        niveau=a.niveau, 
+        id=str(a.id),
+        user_id=getattr(a, 'user_id', None) or getattr(a, 'patient_id', None),
+        message=a.message,
+        niveau=a.niveau,
         date=a.date
     ) for a in alertes_docs]
 

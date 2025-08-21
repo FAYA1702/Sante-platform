@@ -14,8 +14,11 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 secondes de timeout
+  timeout: 30000, // 30 secondes de timeout pour éviter les erreurs lors d'ajout de données
 });
+
+// Log de diagnostic: baseURL effective
+console.info('[API] baseURL =', api.defaults.baseURL);
 
 // Intercepteur pour ajouter le token JWT à chaque requête
 api.interceptors.request.use(
@@ -31,28 +34,53 @@ api.interceptors.request.use(
   }
 );
 
-// Intercepteur pour gérer les erreurs globales
+// Intercepteur pour gérer les erreurs globales avec retry automatique
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    // Ne pas bruiter la console si la requête a été annulée (StrictMode/cleanup)
+    if ((error as any)?.code === 'ERR_CANCELED' || error.message?.toLowerCase().includes('canceled')) {
+      return Promise.reject(error);
+    }
+    
     if (error.response) {
       // Erreurs 4xx/5xx
-      console.error('Erreur API:', error.response.status, error.response.data);
+      console.error('[API] Erreur HTTP:', error.response.status, error.response.data);
       
       // Gestion spécifique des erreurs d'authentification
       if (error.response.status === 401) {
-        // Rediriger vers la page de connexion si le token est invalide/expiré
-        if (window.location.pathname !== '/login') {
-          localStorage.removeItem('token');
-          window.location.href = '/login';
+        // Vider complètement le localStorage et rediriger
+        localStorage.clear();
+        if (window.location.pathname !== '/auth' && window.location.pathname !== '/login') {
+          window.location.href = '/auth';
         }
       }
     } else if (error.request) {
-      // La requête a été faite mais aucune réponse n'a été reçue
-      console.error('Pas de réponse du serveur:', error.request);
+      // La requête a été faite mais aucune réponse n'a été reçue (timeout/réseau/CORS)
+      console.error('[API] Pas de réponse du serveur. Détails:', {
+        method: originalRequest?.method,
+        url: originalRequest?.url,
+        baseURL: originalRequest?.baseURL,
+        timeout: originalRequest?.timeout,
+        withCredentials: originalRequest?.withCredentials,
+        code: (error as any)?.code,
+        message: error.message,
+        online: navigator.onLine,
+      });
+      
+      // Retry automatique pour les timeouts (max 2 tentatives)
+      if (!originalRequest._retry && (error.code === 'ECONNABORTED' || error.message.includes('timeout'))) {
+        originalRequest._retry = true;
+        console.log('[API] 🔄 Nouvelle tentative (timeout)...');
+        
+        // Attendre 1 seconde avant de réessayer
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return api(originalRequest);
+      }
     } else {
       // Erreur lors de la configuration de la requête
-      console.error('Erreur de configuration:', error.message);
+      console.error('[API] Erreur de configuration:', error.message);
     }
     
     return Promise.reject(error);

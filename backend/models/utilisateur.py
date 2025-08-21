@@ -28,8 +28,8 @@ class Utilisateur(Document):
     """Document MongoDB représentant un utilisateur de la plateforme."""
 
     email: Indexed(EmailStr, unique=True)  # type: ignore
-    username: Indexed(str, unique=True)  # type: ignore
-    mot_de_passe_hache: str = Field(..., min_length=60)
+    username: Optional[Indexed(str, unique=True)] = None  # type: ignore
+    mot_de_passe_hache: Optional[str] = Field(None, min_length=60)
     role: Role = Role.patient
     # Statut de validation (pour médecins principalement)
     statut: StatutUtilisateur = Field(default=StatutUtilisateur.actif, description="Statut de validation de l'utilisateur")

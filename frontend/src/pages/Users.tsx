@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { UserGroupIcon, PencilSquareIcon, TrashIcon, HeartIcon, LungsIcon, ClipboardMedicalIcon } from '../components/icons';
 import Loader from '../components/Loader';
 
 /**
@@ -110,10 +111,15 @@ export default function Users() {
   if (loading) return <Loader />;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Gestion des utilisateurs</h1>
-        <div className="relative ml-4">
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+            <UserGroupIcon className="h-5 w-5" />
+          </span>
+          Gestion des utilisateurs
+        </h1>
+        <div className="relative ml-0 sm:ml-4 w-full sm:w-auto">
           <svg
             className="absolute left-2 top-1.5 h-4 w-4 text-slate-400 pointer-events-none"
             xmlns="http://www.w3.org/2000/svg"
@@ -136,11 +142,11 @@ export default function Users() {
               setPage(0);
               setSearch(e.target.value);
             }}
-            className="pl-8 border px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="pl-8 pr-3 py-2 w-full sm:w-72 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
         <button
-          className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
+          className="px-3 py-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           onClick={() => {
             setSelected(null);
             setShowModal(true);
@@ -149,26 +155,26 @@ export default function Users() {
           + Ajouter
         </button>
       </div>
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white shadow rounded">
-          <thead className="sticky top-0 bg-white shadow-sm">
+      {error && <p className="text-red-600 dark:text-red-300 mb-4">{error}</p>}
+      <div className="overflow-x-auto rounded-xl shadow-sm ring-1 ring-gray-900/5 bg-white dark:bg-gray-800">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="sticky top-0 bg-gray-50 dark:bg-gray-900/40">
             <tr>
-              <th className="text-left p-2">Email</th>
-              <th className="text-left p-2">Username</th>
-              <th className="text-left p-2">Nom complet</th>
-              <th className="text-left p-2">Rôle</th>
-              <th className="text-left p-2">Département</th>
-              <th className="text-left p-2">Statut</th>
-              <th className="text-right p-2">Actions</th>
+              <th className="text-left p-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Email</th>
+              <th className="text-left p-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Username</th>
+              <th className="text-left p-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Nom complet</th>
+              <th className="text-left p-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Rôle</th>
+              <th className="text-left p-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Département</th>
+              <th className="text-left p-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Statut</th>
+              <th className="text-right p-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {users.map((u, idx) => (
-              <tr key={u.id} className={idx % 2 ? 'odd:bg-slate-50' : ''}>
-                <td className="p-2">{u.email}</td>
-                <td className="p-2 font-medium">{u.username}</td>
-                <td className="p-2">
+              <tr key={u.id} className={idx % 2 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900/30'}>
+                <td className="p-3 text-gray-900 dark:text-gray-100">{u.email}</td>
+                <td className="p-3 font-medium text-gray-900 dark:text-gray-100">{u.username}</td>
+                <td className="p-3 text-gray-700 dark:text-gray-300">
                   {u.role === 'medecin' && (u.nom || u.prenom) 
                     ? `Dr. ${u.prenom || ''} ${u.nom || ''}`.trim()
                     : u.nom && u.prenom 
@@ -176,22 +182,22 @@ export default function Users() {
                     : '-'
                   }
                 </td>
-                <td className="p-2">
+                <td className="p-3">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${roleColors[u.role]}`}>
                     {u.role}
                   </span>
                 </td>
-                <td className="p-2">
+                <td className="p-3 text-gray-700 dark:text-gray-300">
                   {u.role === 'medecin' ? (
-                    <span className="text-sm text-gray-600">
-                      {u.department_id === 'cardiologie' ? '❤️ Cardiologie' :
-                       u.department_id === 'pneumologie' ? '🫁 Pneumologie' :
-                       u.department_id === 'medecine_generale' ? '🩺 Médecine Générale' :
-                       u.department_id || '-'}
+                    <span className="text-sm text-gray-600 dark:text-gray-300 inline-flex items-center gap-1">
+                      {u.department_id === 'cardiologie' ? (<><HeartIcon className="h-4 w-4 text-rose-600" /> Cardiologie</>) :
+                       u.department_id === 'pneumologie' ? (<><LungsIcon className="h-4 w-4 text-cyan-600" /> Pneumologie</>) :
+                       u.department_id === 'medecine_generale' ? (<><ClipboardMedicalIcon className="h-4 w-4 text-primary-600" /> Médecine Générale</>) :
+                       (u.department_id || '-')}
                     </span>
                   ) : '-'}
                 </td>
-                <td className="p-2">
+                <td className="p-3">
                   {u.role === 'medecin' && u.statut ? (
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                       u.statut === 'actif' ? 'bg-green-100 text-green-800' :
@@ -206,20 +212,20 @@ export default function Users() {
                     </span>
                   ) : '-'}
                 </td>
-                <td className="p-2 text-right space-x-2">
+                <td className="p-3 text-right space-x-2">
                   <button 
                     onClick={() => handleEdit(u)} 
                     title="Modifier" 
-                    className="px-2 py-1 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform"
+                    className="px-2 py-1 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
                   >
-                    ✏️ <span className="sr-only">Modifier</span>
+                    <PencilSquareIcon className="h-4 w-4" /> <span className="sr-only">Modifier</span>
                   </button>
                   <button 
                     onClick={() => handleDelete(u.id)} 
                     title="Supprimer" 
-                    className="px-2 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform"
+                    className="px-2 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded inline-flex items-center gap-1 transform hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   >
-                    🗑️ <span className="sr-only">Supprimer</span>
+                    <TrashIcon className="h-4 w-4" /> <span className="sr-only">Supprimer</span>
                   </button>
                 </td>
               </tr>
@@ -228,11 +234,11 @@ export default function Users() {
         </table>
       </div>
 
-      <div className="flex justify-center items-center gap-4 mt-4">
+      <div className="flex justify-center items-center gap-4 mt-5">
         <button
           disabled={page === 0}
           onClick={() => setPage((p) => Math.max(0, p - 1))}
-          className="px-3 py-1 bg-slate-200 rounded disabled:opacity-50"
+          className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded disabled:opacity-50"
         >
           Précédent
         </button>
@@ -240,17 +246,17 @@ export default function Users() {
         <button
           disabled={!hasMore}
           onClick={() => setPage((p) => p + 1)}
-          className="px-3 py-1 bg-slate-200 rounded disabled:opacity-50"
+          className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded disabled:opacity-50"
         >
           Suivant
         </button>
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50">
-          <div className="bg-white rounded shadow-lg w-full max-w-md p-6 relative transform-gpu scale-95 transition-all duration-200">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-md p-6 relative transform-gpu scale-95 transition-all duration-200 ring-1 ring-gray-900/5">
             <button
-              className="absolute top-2 right-2 text-slate-600 hover:text-slate-900"
+              className="absolute top-2 right-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               onClick={() => setShowModal(false)}
             >
               ✕
@@ -280,7 +286,7 @@ export default function Users() {
                 required
                 type="email"
                 placeholder="Email"
-                className="w-full border px-3 py-2 rounded"
+                className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
@@ -288,7 +294,7 @@ export default function Users() {
                 required
                 type="text"
                 placeholder="Username"
-                className="w-full border px-3 py-2 rounded"
+                className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
               />
@@ -297,13 +303,13 @@ export default function Users() {
                   required
                   type="password"
                   placeholder="Mot de passe"
-                  className="w-full border px-3 py-2 rounded"
+                  className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={form.mot_de_passe}
                   onChange={(e) => setForm({ ...form, mot_de_passe: e.target.value })}
                 />
               )}
               <select
-                className="w-full border px-3 py-2 rounded"
+                className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
               >
@@ -312,7 +318,7 @@ export default function Users() {
                 <option value="technicien">technicien</option>
                 <option value="admin">admin</option>
               </select>
-              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
+              <button className="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 rounded shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                 {selected ? 'Enregistrer' : 'Créer'}
               </button>
             </form>

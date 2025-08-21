@@ -1,7 +1,5 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 
 const ThemeToggle: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -13,15 +11,9 @@ const ThemeToggle: React.FC = () => {
       aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
     >
       {theme === 'dark' ? (
-        <FontAwesomeIcon 
-          icon={faSun} 
-          className="w-5 h-5 text-yellow-400" 
-        />
+        <i className="bi bi-sun-fill text-yellow-400 text-xl" />
       ) : (
-        <FontAwesomeIcon 
-          icon={faMoon} 
-          className="w-5 h-5 text-gray-700" 
-        />
+        <i className="bi bi-moon-stars-fill text-gray-700 text-xl" />
       )}
     </button>
   );

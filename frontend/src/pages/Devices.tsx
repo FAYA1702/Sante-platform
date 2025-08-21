@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
+import { WrenchScrewdriverIcon } from '../components/icons';
 
 /**
  * Page Appareils (protégée RBAC frontend)
@@ -29,7 +30,7 @@ export default function Devices() {
     <>
       {showAlert && (
         <div style={{position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 50}}>
-          <div className="bg-red-100 border border-red-300 text-red-800 px-6 py-3 rounded shadow-lg flex items-center gap-3 animate-fade-in">
+          <div className="bg-red-100 border border-red-300 text-red-800 px-6 py-3 rounded shadow-lg flex items-center gap-3 animate-fade-in dark:bg-red-900/20 dark:border-red-800 dark:text-red-200">
             <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10" className="fill-red-200" />
               <path d="M12 8v4m0 4h.01" strokeLinecap="round" />
@@ -85,19 +86,21 @@ export default function Devices() {
     });
   }, []);
 
-  // Chargement des patients (pour le sélecteur)
+  // Chargement des patients (pour le sélecteur) si rôle autorisé
   useEffect(() => {
-    import('../api').then(({ default: api }) => {
-      api.get('/users/patients')
-        .then(res => {
-          setPatients(res.data);
-        })
-        .catch(err => {
-          console.error('Erreur chargement patients:', err);
-          setError('Erreur lors du chargement des patients.');
-        });
-    });
-  }, []);
+    if (role === 'admin' || role === 'technicien') {
+      import('../api').then(({ default: api }) => {
+        api.get('/users/patients')
+          .then(res => {
+            setPatients(res.data);
+          })
+          .catch(err => {
+            console.error('Erreur chargement patients:', err);
+            setError('Erreur lors du chargement des patients.');
+          });
+      });
+    }
+  }, [role]);
 
   // Gestion du formulaire
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -132,33 +135,40 @@ export default function Devices() {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Gestion des appareils</h1>
-      
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="mb-5 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+            <WrenchScrewdriverIcon className="h-5 w-5" />
+          </span>
+          Gestion des appareils
+        </h1>
+      </div>
+       
       {/* Messages d'erreur/succès */}
       {error && (
-        <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded mb-4">
+        <div className="mb-4 rounded-lg border border-red-300 bg-red-50 text-red-800 px-4 py-3 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded mb-4">
+        <div className="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 px-4 py-3 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-200">
           {success}
         </div>
       )}
 
       {/* Formulaire de création */}
-      <div className="bg-gray-50 border rounded p-4 mb-6">
-        <h2 className="text-lg font-semibold mb-3">Ajouter un appareil</h2>
-        <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 items-end">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 mb-6 shadow-sm">
+        <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Ajouter un appareil</h2>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           <div>
-            <label className="block text-xs font-semibold mb-1">Type d'appareil</label>
+            <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-gray-300">Type d'appareil</label>
             <select
               name="type"
               required
               value={form.type}
               onChange={handleChange}
-              className="border px-2 py-1 rounded w-60"
+              className="bg-white text-gray-900 placeholder-gray-500 border border-gray-300 rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="" disabled>Sélectionner un type</option>
               {typesAppareils.map((type) => (
@@ -169,25 +179,25 @@ export default function Devices() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Numéro de série</label>
+            <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-gray-300">Numéro de série</label>
             <input 
               name="numero_serie" 
               type="text" 
               required 
               value={form.numero_serie} 
               onChange={handleChange} 
-              className="border px-2 py-1 rounded w-40" 
+              className="bg-white text-gray-900 placeholder-gray-500 border border-gray-300 rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500" 
               placeholder="SN12345"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1">Patient propriétaire</label>
+            <label className="block text-xs font-semibold mb-1 text-gray-700 dark:text-gray-300">Patient propriétaire</label>
             <select 
               name="user_id" 
               required 
               value={form.user_id} 
               onChange={handleChange} 
-              className="border px-2 py-1 rounded w-60">
+              className="bg-white text-gray-900 placeholder-gray-500 border border-gray-300 rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="" disabled>Sélectionner un patient</option>
               {patients.map((patient) => (
                 <option key={patient.id} value={patient.id}>
@@ -199,7 +209,7 @@ export default function Devices() {
           <div>
             <button 
               type="submit" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded"
+              className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               disabled={loading}
             >
               {loading ? 'Chargement...' : 'Ajouter'}
@@ -209,41 +219,41 @@ export default function Devices() {
       </div>
 
       {/* Liste des appareils */}
-      <h2 className="text-lg font-semibold mb-3">Appareils enregistrés</h2>
+      <h2 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Appareils enregistrés</h2>
       {loading && <Loader />}
       
       {!loading && appareils.length === 0 && (
-        <p className="text-gray-500 italic">Aucun appareil enregistré.</p>
+        <p className="text-gray-500 dark:text-gray-400 italic">Aucun appareil enregistré.</p>
       )}
       
       {appareils.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border">
-            <thead>
-              <tr className="bg-gray-100 text-gray-700">
-                <th className="py-2 px-4 border text-left">#</th>
-                <th className="py-2 px-4 border text-left">Type</th>
-                <th className="py-2 px-4 border text-left">Numéro de série</th>
-                <th className="py-2 px-4 border text-left">Patient</th>
+        <div className="overflow-x-auto rounded-xl shadow-sm ring-1 ring-gray-900/5 bg-white dark:bg-gray-800">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300">
+              <tr>
+                <th className="py-2 px-4 text-left text-xs font-semibold uppercase tracking-wider">#</th>
+                <th className="py-2 px-4 text-left text-xs font-semibold uppercase tracking-wider">Type</th>
+                <th className="py-2 px-4 text-left text-xs font-semibold uppercase tracking-wider">Numéro de série</th>
+                <th className="py-2 px-4 text-left text-xs font-semibold uppercase tracking-wider">Patient</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {appareils.map((appareil, index) => (
-                <tr key={appareil.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border text-center font-semibold">
-                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full" title={appareil.id}>
+                <tr key={appareil.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/40">
+                  <td className="py-2 px-4 text-center font-semibold">
+                    <span className="bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-200 px-3 py-1 rounded-full" title={appareil.id}>
                       {index + 1}
                     </span>
                   </td>
-                  <td className="py-2 px-4 border">{appareil.type}</td>
-                  <td className="py-2 px-4 border">{appareil.numero_serie}</td>
-                  <td className="py-2 px-4 border">
+                  <td className="py-2 px-4 text-gray-900 dark:text-gray-100">{appareil.type}</td>
+                  <td className="py-2 px-4 text-gray-900 dark:text-gray-100">{appareil.numero_serie}</td>
+                  <td className="py-2 px-4">
                     {appareil.patient_username ? (
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                      <span className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 px-2 py-1 rounded-full text-xs">
                         {appareil.patient_username}
                       </span>
                     ) : (
-                      <span className="text-gray-400 italic">Non assigné</span>
+                      <span className="text-gray-400 dark:text-gray-500 italic">Non assigné</span>
                     )}
                   </td>
                 </tr>

@@ -3,6 +3,7 @@ import { Outlet, useNavigate, Link, useLocation, NavLink as RouterNavLink, NavLi
 import { PropsWithChildren, FC, ReactNode } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import ThemeToggle from './ThemeToggle';
+import { UserGroupIcon } from './icons';
 import api from '../api';
 
 type UserRole = 'patient' | 'medecin' | 'admin' | 'technicien';
@@ -91,7 +92,7 @@ const MobileMenuButton: FC<MobileMenuButtonProps> = ({ isOpen, onClick }) => (
 
 // Footer component
 const Footer: FC = () => (
-  <footer className="bg-white dark:bg-gray-800 shadow-inner mt-auto">
+  <footer className="bg-sky-50/60 dark:bg-sky-950/60 border-t border-sky-100 dark:border-sky-800 shadow-inner mt-auto">
     <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col md:flex-row justify-between items-center">
         <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -304,7 +305,7 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
     },
     {
       to: "/assignations",
-      label: "Assignations",
+      label: "Gestion Assignations",
       icon: (
         <path
           strokeLinecap="round"
@@ -313,22 +314,18 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
           d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
         />
       ),
-      show: isAuthenticated && (role === 'admin' || role === 'technicien' || role === 'medecin' || role === 'patient'),
+      show: isAuthenticated && role === 'technicien',
     },
   ];
 
   return (
-    <div className={`min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200 ${theme}`}>
-      {/* Élément de test pour vérifier le chargement de Tailwind */}
-      <div className="p-4 bg-blue-100 border-l-4 border-blue-500 text-blue-700 mb-4">
-        <p className="font-bold">Test Tailwind CSS</p>
-        <p>Si vous voyez ce message, Tailwind est correctement chargé.</p>
-      </div>
+    <div className={`min-h-screen flex flex-col bg-gradient-to-b from-sky-50 via-sky-100 to-white dark:from-sky-950 dark:via-sky-900 dark:to-sky-900 transition-colors duration-200 ${theme}`}>
+      
       
       {/* Navigation Bar */}
       <header
-        className={`fixed w-full z-50 transition-all duration-200 ${
-          scrolled ? 'bg-white/95 dark:bg-gray-800/95 shadow-md' : 'bg-white dark:bg-gray-800 shadow-sm'
+        className={`fixed w-full z-50 transition-all duration-200 supports-[backdrop-filter]:backdrop-blur-lg backdrop-saturate-150 border-b border-sky-100 dark:border-sky-800 ${
+          scrolled ? 'bg-white/85 dark:bg-gray-900/80 shadow-md' : 'bg-white/70 dark:bg-gray-900/70 shadow-sm'
         }`}
         role="banner"
       >
@@ -407,7 +404,6 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
                         <button
                           onClick={handleLogout}
                           className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
-                          role="menuitem"
                         >
                           Déconnexion
                         </button>
@@ -452,14 +448,15 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
                   <div className="flex items-center">
                     <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-200 font-medium">
                       {(username || 'U').charAt(0).toUpperCase()}
-                    </div>
-                    <div className="ml-3">
-                      <div className="text-base font-medium text-gray-800 dark:text-white">
-                        {username}
-                      </div>
-                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400 capitalize">
-                        {role}
-                      </div>
+                      {role === 'technicien' && (
+                        <Link
+                          to="/assignations"
+                          className="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md"
+                        >
+                          <UserGroupIcon className="text-gray-400 group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" />
+                          Gestion Assignations
+                        </Link>
+                      )}
                     </div>
                     <div className="ml-auto flex items-center space-x-2">
                       {/* Admin: Pending doctors notification */}

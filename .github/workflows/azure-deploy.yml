@@ -6,7 +6,7 @@ on:
       image_tag:
         description: 'Image tag to use (e.g., sha or version)'
         required: false
-        default: ${{ github.sha }}
+        default: ""
   push:
     branches: [ main ]
     paths:
@@ -20,7 +20,7 @@ env:
   AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
   AZURE_CONTAINERAPPS_ENVIRONMENT: ${{ secrets.AZURE_CONTAINERAPPS_ENVIRONMENT }}
   ACR_NAME: ${{ secrets.ACR_NAME }}
-  IMAGE_TAG: ${{ github.event.inputs.image_tag || github.sha }}
+  IMAGE_TAG: ${{ github.event.inputs.image_tag != '' && github.event.inputs.image_tag || github.sha }}
 
 jobs:
   build-and-deploy:

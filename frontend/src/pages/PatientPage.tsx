@@ -59,39 +59,39 @@ export default function PatientPage() {
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm">
         <Link to="/" className="text-blue-600 hover:underline">Tableau de bord</Link>
-        <i className="bi bi-chevron-right text-gray-500"></i>
-        <span className="text-gray-700">Fiche patient</span>
+        <i className="bi bi-chevron-right text-gray-500 dark:text-gray-300"></i>
+        <span className="text-gray-700 dark:text-gray-100">Fiche patient</span>
       </nav>
 
       {/* En-tête patient */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
         <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-            <i className="bi bi-person-circle text-blue-600 text-4xl"></i>
+          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+            <i className="bi bi-person-circle text-blue-600 dark:text-blue-300 text-4xl"></i>
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{summary.nom}</h1>
-            <p className="text-gray-600">{summary.email}</p>
-            <p className="text-sm text-gray-500">ID: {summary.id}</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{summary.nom}</h1>
+            <p className="text-gray-600 dark:text-gray-300">{summary.email}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">ID: {summary.id}</p>
           </div>
         </div>
 
         {/* Dernières données */}
         {summary.last_data && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
             <h3 className="font-semibold mb-2">Dernières mesures</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
-                <span className="text-gray-600">Fréquence cardiaque:</span>
-                <span className="ml-2 font-medium">{summary.last_data.frequence_cardiaque || 'N/A'} bpm</span>
+                <span className="text-gray-600 dark:text-gray-300">Fréquence cardiaque:</span>
+                <span className="ml-2 font-medium text-gray-800 dark:text-gray-100">{summary.last_data.frequence_cardiaque || 'N/A'} bpm</span>
               </div>
               <div>
-                <span className="text-gray-600">SpO2:</span>
-                <span className="ml-2 font-medium">{summary.last_data.taux_oxygene || 'N/A'}%</span>
+                <span className="text-gray-600 dark:text-gray-300">SpO2:</span>
+                <span className="ml-2 font-medium text-gray-800 dark:text-gray-100">{summary.last_data.taux_oxygene || 'N/A'}%</span>
               </div>
               <div>
-                <span className="text-gray-600">Date:</span>
-                <span className="ml-2 font-medium">{new Date(summary.last_data.date).toLocaleDateString()}</span>
+                <span className="text-gray-600 dark:text-gray-300">Date:</span>
+                <span className="ml-2 font-medium text-gray-800 dark:text-gray-100">{new Date(summary.last_data.date).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
@@ -120,7 +120,7 @@ export default function PatientPage() {
       {/* Onglets historique */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Alertes */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="p-4 border-b">
             <h2 className="text-lg font-semibold flex items-center">
               <i className="bi bi-bell-fill mr-2 text-red-500"></i>
@@ -131,7 +131,7 @@ export default function PatientPage() {
             {history?.alertes.length ? (
               <div className="space-y-3">
                 {history.alertes.map((alerte, idx) => (
-                  <div key={idx} className="p-3 border rounded-lg">
+                  <div key={idx} className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
                     <div className={`inline-block px-2 py-1 rounded text-xs font-medium mb-2 ${
                       alerte.niveau === 'élevé' ? 'bg-red-100 text-red-800' :
                       alerte.niveau === 'moyen' ? 'bg-yellow-100 text-yellow-800' :
@@ -139,8 +139,8 @@ export default function PatientPage() {
                     }`}>
                       {alerte.niveau}
                     </div>
-                    <p className="text-sm text-gray-700">{alerte.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">{new Date(alerte.date).toLocaleString()}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-100">{alerte.message}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{new Date(alerte.date).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
@@ -151,7 +151,7 @@ export default function PatientPage() {
         </div>
 
         {/* Données santé */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="p-4 border-b">
             <h2 className="text-lg font-semibold flex items-center">
               <i className="bi bi-activity mr-2 text-green-500"></i>
@@ -162,13 +162,13 @@ export default function PatientPage() {
             {history?.donnees.length ? (
               <div className="space-y-3">
                 {history.donnees.slice(0, 10).map((donnee, idx) => (
-                  <div key={idx} className="p-3 border rounded-lg">
+                  <div key={idx} className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-sm"><strong>FC:</strong> {donnee.frequence_cardiaque} bpm</p>
-                        <p className="text-sm"><strong>SpO2:</strong> {donnee.taux_oxygene}%</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-100"><span className="font-medium text-gray-600 dark:text-gray-300">FC:</span> {donnee.frequence_cardiaque} bpm</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-100"><span className="font-medium text-gray-600 dark:text-gray-300">SpO2:</span> {donnee.taux_oxygene}%</p>
                       </div>
-                      <span className="text-xs text-gray-500">{new Date(donnee.date).toLocaleDateString()}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(donnee.date).toLocaleDateString()}</span>
                     </div>
                   </div>
                 ))}
@@ -180,7 +180,7 @@ export default function PatientPage() {
         </div>
 
         {/* Recommandations */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="p-4 border-b">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold flex items-center">
@@ -196,10 +196,10 @@ export default function PatientPage() {
             {history?.recommandations.length ? (
               <div className="space-y-3">
                 {history.recommandations.map((reco, idx) => (
-                  <div key={idx} className="p-3 border rounded-lg">
-                    <h4 className="font-medium text-sm">{reco.titre}</h4>
-                    <p className="text-sm text-gray-700 mt-1">{reco.description}</p>
-                    <p className="text-xs text-gray-500 mt-2">{new Date(reco.date).toLocaleDateString()}</p>
+                  <div key={idx} className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+                    <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100">{reco.titre}</h4>
+                    <p className="text-sm text-gray-700 dark:text-gray-100 mt-1">{reco.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{new Date(reco.date).toLocaleDateString()}</p>
                   </div>
                 ))}
               </div>

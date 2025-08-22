@@ -18,14 +18,8 @@ interface Recommandation {
 }
 
 interface NotificationInfo {
-  total_non_vues: number;
-  notifications: Array<{
-    id: string;
-    titre: string;
-    priorite: string;
-    type: string;
-    date_creation: string;
-  }>;
+  non_lues: number;
+  total: number;
 }
 
 export default function PatientRecommandations() {
@@ -136,12 +130,12 @@ export default function PatientRecommandations() {
             </div>
           </div>
           
-          {notifications && notifications.total_non_vues > 0 && (
+          {notifications && notifications.non_lues > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <div className="flex items-center gap-2">
                 <i className="bi bi-bell-fill text-red-500"></i>
                 <span className="text-red-700 font-medium">
-                  {notifications.total_non_vues} nouvelle(s) recommandation(s)
+                  {notifications.non_lues} nouvelle(s) recommandation(s)
                 </span>
               </div>
             </div>
